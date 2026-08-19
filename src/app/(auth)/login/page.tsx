@@ -136,7 +136,7 @@ function LoginPageContent() {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">O continúa con</span>
+              <span className="px-2 bg-card text-muted-foreground">O entra con</span>
             </div>
           </div>
 

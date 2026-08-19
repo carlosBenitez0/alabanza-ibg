@@ -153,13 +153,6 @@ export default function RegisterPage() {
               Inicia sesión
             </Link>
           </p>
-
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Al registrarte, aceptas nuestros
-            <Link href="/terminos" className="text-primary hover:underline">Términos</Link>
-            y
-            <Link href="/privacidad" className="text-primary hover:underline">Política de Privacidad</Link>
-          </p>
         </div>
       </div>
     </div>
