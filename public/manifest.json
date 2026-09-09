@@ -1,0 +1,23 @@
+{
+  "name": "Alabanza IBG",
+  "short_name": "Alabanza",
+  "description": "Plataforma de gestión para el ministerio de alabanza IBG",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/ibglogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ibglogoconletras.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

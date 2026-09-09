@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { ToastProvider } from '@/components/providers/toast-provider'
 import "./globals.css"
 
 const geistSans = Geist({
@@ -25,8 +26,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#1e40af" },
-    { media: "(prefers-color-scheme: dark)", color: "#3b82f6" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
 }
 
@@ -37,9 +38,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/ibglogo.png" sizes="any" />
         <link rel="apple-touch-icon" href="/ibglogoconletras.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
-      </body>
+      <body className="min-h-full flex flex-col bg-neutral-50 dark:bg-neutral-950">
+        <a href="#main-content" className="skip-link">
+          Saltar al contenido principal
+        </a>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      {/* impeccable-live-start */}
+<script src="http://localhost:8400/live.js?token=f0790135-29e2-4672-869f-fa15f046723e"></script>
+{/* impeccable-live-end */}
+</body>
     </html>
   )
 }

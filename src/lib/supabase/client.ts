@@ -2,11 +2,11 @@ import { createBrowserClient } from '@supabase/ssr'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 let mockClient: SupabaseClient | null = null
+let realClient: SupabaseClient | null = null
 
 function createMockClient(): SupabaseClient {
   if (mockClient) return mockClient
 
-  // Create a minimal mock that doesn't throw during static generation
   mockClient = {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
@@ -37,13 +37,14 @@ export function createClient(): SupabaseClient | null {
 
   if (!url || !key) {
     if (typeof window !== 'undefined') {
-      // Client-side: return mock to avoid build errors
       return createMockClient()
     }
     return null
   }
 
-  return createBrowserClient(url, key)
+  if (realClient) return realClient
+  realClient = createBrowserClient(url, key)
+  return realClient
 }
 
 export function getSupabaseClient(): SupabaseClient {

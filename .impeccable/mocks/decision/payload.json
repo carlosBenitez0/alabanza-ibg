@@ -1,0 +1,61 @@
+{
+  "title": "Elige el nuevo mundo visual",
+  "question": "Tu brief pina escala de grises y minimalismo. Confirma la direccion principal o elige una alternativa.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "El Indice del Cuarto Oscuro",
+      "kicker": "BRIEF-PINNED BUILD",
+      "lineage": "Estaciones de microfiche de biblioteca + Swiss International Style",
+      "thesis": "La app como un lector de microfiche: texto blanco sobre negro absoluto, jerarquia de contraste, GSAP como el movimiento del lente.",
+      "palette": ["#0a0a0a", "#f5f5f5", "#6b7280", "#1a1a1a", "#e5e7eb"],
+      "materials": ["backlit dark glass", "hairline grid rules", "GSAP clip-path reveals"],
+      "viewport": "Sidebar negro sobre fondo casi-negro. Tarjetas con texto blanco puro. Elementos revelan con GSAP clip-path al entrar al viewport.",
+      "risk": "Requiere contraste preciso; gris mal elegido colapsa la jerarquia.",
+      "raised": [
+        { "from": "microfiche-challenger", "raise": "Compromiso ambiental total: cada superficie es parte del mismo campo oscuro."},
+        { "from": "swiss-grid", "raise": "Valor de densidad del grid suizo: columnas y ritmo de espaciado como ley."},
+        { "from": "user-brief", "raise": "GSAP como material nativo: reveals con clip-path, stagger de listas, transiciones de ruta."}
+      ],
+      "comp": ".impeccable/mocks/decision/assigned.webp"
+    },
+    {
+      "id": "challenger-warm-mono",
+      "label": "El Boletin Mimeografiado",
+      "verdict": "competitive",
+      "lineage": "Boletines de iglesia mimeografiados de los 60-80",
+      "thesis": "Escala de grises calida: papel marfil, tinta gris oxford, type humanista.",
+      "palette": ["#f5f0e8", "#2d2d2d", "#8a8580", "#c8c0b0"],
+      "materials": ["newsprint warmth", "humanist sans", "GSAP page reveals"],
+      "viewport": "Fondo marfil con texto gris oxford denso, cabezales en tipo bold humanista.",
+      "case": "Identificacion alta, pero el fondo claro reduce el impacto nocturno.",
+      "risk": "Puede leerse como nostalgico en lugar de deliberadamente moderno.",
+      "comp": ".impeccable/mocks/decision/challenger-warm-mono.webp"
+    },
+    {
+      "id": "challenger-code-audit",
+      "label": "El Log de Sesion",
+      "verdict": "declined",
+      "lineage": "Terminal monospace system logs",
+      "thesis": "Toda la UI como un log de auditoria: mono, timestamps, line numbers.",
+      "palette": ["#0d1117", "#c9d1d9", "#58a6ff"],
+      "materials": ["monospace only", "terminal motion"],
+      "case": "Pierde claridad para musicos; la audiencia no son desarrolladores.",
+      "kept": "La disciplina de un solo peso tipografico y una sola familia.",
+      "risk": "Demasiado tecnico para el contexto ministerial."
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "comp", "toggle": true },
+  "canon": true,
+  "canonCard": {
+    "label": "El estandar de la categoria",
+    "thesis": "Dashboard moderno con sidebar blanco, tarjetas con sombra, color indigo como acento.",
+    "palette": ["#ffffff", "#f8fafc", "#4f46e5", "#0f172a"],
+    "materials": ["card grid", "soft shadows", "indigo accent"],
+    "viewport": "El arreglo que cualquier usuario espera de un dashboard SaaS.",
+    "risk": "Indistinguible de cualquier otro dashboard.",
+    "comp": ".impeccable/mocks/decision/canon.webp"
+  },
+  "steer": true
+}

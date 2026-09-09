@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-19T16:22:00Z",
+  "title": "Design System: Alabanza IBG",
+  "extensions": {
+    "colorMeta": {
+      "brand-primary":        { "role": "primary",   "displayName": "Ministerial Indigo",  "canonical": "#4f46e5", "tonalRamp": ["#1e1b4b", "#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#eef2ff"] },
+      "brand-hover":          { "role": "primary",   "displayName": "Indigo Deep",         "canonical": "#4338ca", "tonalRamp": ["#1e1b4b", "#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#eef2ff"] },
+      "brand-light":          { "role": "primary",   "displayName": "Indigo Mist",         "canonical": "#eef2ff", "tonalRamp": ["#1e1b4b", "#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#eef2ff"] },
+      "accent-amber":         { "role": "secondary", "displayName": "Amber Candle",        "canonical": "#f59e0b", "tonalRamp": ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fffbeb"] },
+      "accent-amber-light":   { "role": "secondary", "displayName": "Amber Glow",          "canonical": "#fffbeb", "tonalRamp": ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fffbeb"] },
+      "surface-white":        { "role": "neutral",   "displayName": "Clean Canvas",        "canonical": "#ffffff", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9", "#ffffff"] },
+      "surface-base":         { "role": "neutral",   "displayName": "Fog",                 "canonical": "#f8fafc", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9", "#f8fafc"] },
+      "surface-dark-base":    { "role": "neutral",   "displayName": "Midnight",            "canonical": "#0f172a", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f8fafc"] },
+      "surface-dark-raised":  { "role": "neutral",   "displayName": "Charcoal",            "canonical": "#1e293b", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f8fafc"] },
+      "neutral-text":         { "role": "neutral",   "displayName": "Ink",                 "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#f8fafc"] },
+      "neutral-tertiary":     { "role": "neutral",   "displayName": "Dusty Slate",         "canonical": "#64748b", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f8fafc"] },
+      "neutral-border":       { "role": "neutral",   "displayName": "Parchment Border",    "canonical": "#e2e8f0", "tonalRamp": ["#0f172a", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"] },
+      "success":              { "role": "semantic",  "displayName": "Success Green",       "canonical": "#22c55e", "tonalRamp": ["#052e16", "#064e3b", "#166534", "#15803d", "#16a34a", "#22c55e", "#86efac", "#dcfce7"] },
+      "warning":              { "role": "semantic",  "displayName": "Warning Amber",       "canonical": "#eab308", "tonalRamp": ["#422006", "#713f12", "#854d0e", "#a16207", "#ca8a04", "#eab308", "#fde68a", "#fef9c3"] },
+      "error":                { "role": "semantic",  "displayName": "Error Red",           "canonical": "#ef4444", "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#fca5a5", "#fef2f2"] },
+      "info":                 { "role": "semantic",  "displayName": "Info Blue",           "canonical": "#3b82f6", "tonalRamp": ["#172554", "#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#dbeafe"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display",  "purpose": "Page-level headings. Single H1 per view." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, event titles, modal headers." },
+      "title":    { "displayName": "Title",    "purpose": "Card titles, form section headings, sidebar group labels." },
+      "body":     { "displayName": "Body",     "purpose": "General content. 60\u201372ch max-width in reading contexts." },
+      "label":    { "displayName": "Label",    "purpose": "Metadata chips, form labels, table column headers." },
+      "mono":     { "displayName": "Mono",     "purpose": "Code, IDs, technical strings." }
+    },
+    "shadows": [
+      { "name": "ambient-card",  "value": "0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08)",            "purpose": "Default shadow on all Card components at rest. Always present." },
+      { "name": "hover-lift",    "value": "0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08)",        "purpose": "Interactive card hover state. Signals clickability." },
+      { "name": "elevated",      "value": "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",       "purpose": "Modals, sheets, popovers, dropdowns." },
+      { "name": "focus-ring",    "value": "0 0 0 3px rgb(99 102 241 / 0.4)",                                              "purpose": "Brand-tinted keyboard focus ring on interactive elements." },
+      { "name": "focus-ring-accent", "value": "0 0 0 3px rgb(245 158 11 / 0.4)",                                         "purpose": "Accent focus ring for amber-branded interactions." }
+    ],
+    "motion": [
+      { "name": "ease-standard",  "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for all state transitions." },
+      { "name": "duration-fast",  "value": "150ms",  "purpose": "Micro-interactions: hover fills, focus rings, icon swaps." },
+      { "name": "duration-base",  "value": "200ms",  "purpose": "Standard transitions: shadows, color shifts, transforms." },
+      { "name": "duration-slow",  "value": "300ms",  "purpose": "Sidebar slide, modal entrance, page transitions." },
+      { "name": "fade-in",        "value": "fade-in 200ms ease-out", "purpose": "Page-level content entry." },
+      { "name": "slide-up",       "value": "slide-up 200ms ease-out", "purpose": "Content entering from below (toasts, floating panels)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action. One per primary task zone.",
+      "html": "<button class=\"ds-btn-primary\">Iniciar Sesi\u00f3n</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; background-color: #4f46e5; color: #ffffff; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 12px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08); cursor: pointer; transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background-color: #4338ca; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(99 102 241 / 0.6); } .ds-btn-primary:active { background-color: #3730a3; transform: scale(0.98); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Tertiary action adjacent to a primary. Also used as full-width CTA at card footer.",
+      "html": "<button class=\"ds-btn-outline\">Ver detalles</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; background-color: transparent; color: #334155; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: 2px solid #cbd5e1; border-radius: 12px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms; } .ds-btn-outline:hover { background-color: #f8fafc; } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(99 102 241 / 0.5); } .ds-btn-outline:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Navigation controls, icon triggers, sidebar actions like sign-out.",
+      "html": "<button class=\"ds-btn-ghost\"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><polyline points='16 17 21 12 16 7'/><line x1='21' y1='12' x2='9' y2='12'/></svg> Cerrar sesi\u00f3n</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; background-color: transparent; color: #475569; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 8px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms; } .ds-btn-ghost:hover { background-color: #f1f5f9; color: #0f172a; } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(99 102 241 / 0.4); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "description": "Standard labelled text field with optional icon and error state.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-email\">Email</label><div class=\"ds-field-wrap\"><span class=\"ds-field-icon\"><svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z'/><polyline points='22,6 12,12 2,6'/></svg></span><input class=\"ds-field-input\" id=\"ds-email\" type=\"email\" placeholder=\"tu@email.com\" /></div></div>",
+      "css": ".ds-field { width: 100%; } .ds-field-label { display: block; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: #334155; margin-bottom: 6px; } .ds-field-wrap { position: relative; } .ds-field-icon { position: absolute; inset-y: 0; left: 0; display: flex; align-items: center; padding-left: 12px; color: #94a3b8; pointer-events: none; top: 50%; transform: translateY(-50%); } .ds-field-input { width: 100%; height: 40px; padding: 0 12px 0 40px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; color: #0f172a; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: border-color 150ms, box-shadow 150ms; outline: none; } .ds-field-input::placeholder { color: #94a3b8; } .ds-field-input:focus { border-color: transparent; box-shadow: 0 0 0 2px #4f46e5; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-brand",
+      "description": "Inline pill for event type, assignment status, song list state. Optionally includes a leading status dot.",
+      "html": "<span class=\"ds-badge ds-badge--success\"><span class=\"ds-badge-dot\"></span>Confirmado</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-family: Geist, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; border-radius: 9999px; border: 1px solid transparent; transition: color 150ms; } .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; } .ds-badge--brand { background: #eef2ff; color: #4f46e5; } .ds-badge--brand .ds-badge-dot { background: #6366f1; } .ds-badge--success { background: #dcfce7; color: #166534; } .ds-badge--success .ds-badge-dot { background: #22c55e; } .ds-badge--warning { background: #fef9c3; color: #854d0e; } .ds-badge--warning .ds-badge-dot { background: #eab308; } .ds-badge--destructive { background: #fef2f2; color: #991b1b; } .ds-badge--destructive .ds-badge-dot { background: #ef4444; } .ds-badge--default { background: #f1f5f9; color: #475569; } .ds-badge--default .ds-badge-dot { background: #64748b; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary content container. All data in the app lives inside a card.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Servicio Dominical</h3><p class=\"ds-card-desc\">Alabanza y adoraci\u00f3n</p></div><div class=\"ds-card-content\"><span class=\"ds-badge ds-badge--brand\"><span class=\"ds-badge-dot\"></span>Pr\u00f3ximo</span></div></div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08); transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; } .ds-card:hover { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08); } .ds-card-header { padding: 20px 24px 0; } .ds-card-title { font-family: Geist, system-ui, sans-serif; font-size: 1.25rem; font-weight: 600; color: #0f172a; letter-spacing: -0.01em; margin: 0; } .ds-card-desc { font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; color: #64748b; margin: 4px 0 0; } .ds-card-content { padding: 12px 24px 20px; }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "description": "Sidebar navigation link. Active state uses Indigo Mist fill and Ministerial Indigo text.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" class=\"ds-nav-item ds-nav-item--active\"><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7' height='7'/><rect x='14' y='3' width='7' height='7'/><rect x='14' y='14' width='7' height='7'/><rect x='3' y='14' width='7' height='7'/></svg> Dashboard</a><a href=\"#\" class=\"ds-nav-item\"><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg> Mis Eventos</a><a href=\"#\" class=\"ds-nav-item\"><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/><path d='M13.73 21a2 2 0 0 1-3.46 0'/></svg> Notificaciones</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; } .ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-family: Geist, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: #475569; text-decoration: none; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms; } .ds-nav-item:hover { background-color: #f1f5f9; color: #0f172a; } .ds-nav-item--active { background-color: #eef2ff; color: #4f46e5; } .ds-nav-item--active svg { color: #4f46e5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ministry Ledger",
+    "overview": "Alabanza IBG is designed as a faithful record-keeping instrument \u2014 precise, unembellished, and immediately legible. Every screen is organized like a ledger entry: clear columns, deliberate weight hierarchy, and an absence of visual noise. The brand color is used sparingly, like ink from a fountain pen: it marks what matters and recedes everywhere else.\n\nThe system operates in two registers simultaneously: a composed light mode for desktop preparation during the week, and a deep dark mode that feels equally grounded and calm. Both feel like the same tool; neither feels like a consumer app. The overall density is comfortable \u2014 not sparse, not cramped \u2014 because worship team members need to scan quickly, see what's assigned, and move on with their preparation.\n\nThis is a tool built with reverence. Not reverence as decoration, but reverence as a design constraint: the UI should never compete for attention with the music being prepared.",
+    "keyCharacteristics": [
+      "Clean, column-organized layouts with deliberate negative space",
+      "Indigo as the single accent \u2014 rare enough to feel meaningful",
+      "Geist as the system font: neutral, technically precise, legible at every weight",
+      "Restrained components: barely-there shadows, contained corner radii, no superfluous ornament",
+      "Full dark mode parity; both themes feel equally considered",
+      "Status badges as the primary color surface \u2014 event types, assignment statuses, song list states"
+    ],
+    "rules": [
+      { "name": "The Ledger Ink Rule",         "body": "Ministerial Indigo appears on \u226415% of any given screen surface. It marks the one action or the one state that matters. Saturating the page in indigo inverts its function.",    "section": "colors" },
+      { "name": "The Semantic Boundary Rule",   "body": "Green, yellow, red, and blue are status signals only. They are never used as decorative accents, background washes, or brand expressions.",                                               "section": "colors" },
+      { "name": "The Tight Headline Rule",      "body": "Negative letter-spacing (\u22120.025em to \u22120.01em) applies exclusively to semibold headings. Body and label text never receives negative tracking.",                                                    "section": "typography" },
+      { "name": "The Resting Whisper Rule",     "body": "Cards are never perfectly flat. The ambient card shadow (shadow-sm) is a design constant on all Card surfaces at rest.",                                                                        "section": "elevation" },
+      { "name": "The No-Sharp Rule",            "body": "Zero-radius corners are never used on visible surfaces. The minimum radius for any user-facing container or interactive element is 6px.",                                                             "section": "shapes" }
+    ],
+    "dos": [
+      "Do use Ministerial Indigo (#4f46e5) exclusively for the single most important interactive element on each screen \u2014 the primary button or active nav item.",
+      "Do express every entity status (assignment status, event type, song list state) as a status badge with a leading dot.",
+      "Do use negative letter-spacing on semibold headings: \u22120.025em for Display, \u22120.015em for Headline, \u22120.01em for Title.",
+      "Do apply shadow-sm to all Card components at rest as a design constant, not a state.",
+      "Do use rounded-xl (16px) for all card containers and rounded-lg (12px) for interactive buttons.",
+      "Do write all UI copy in natural, warm Spanish. Error messages, empty states, loading states \u2014 all Spanish.",
+      "Do preserve full dark mode parity: every component that has a light style must have a tested dark style."
+    ],
+    "donts": [
+      "Don't use semantic status colors (green, amber, red, blue) for decorative or brand purposes. They communicate state only.",
+      "Don't use sharp corners (0px radius) on any visible UI surface.",
+      "Don't apply neutral tracking or positive tracking to semibold headings.",
+      "Don't layer more than two accent colors on the same screen view. Indigo + Amber is the maximum.",
+      "Don't use the logo image (ibglogo.png) inline in UI components. The Music icon in the branded indigo square is the app's UI mark.",
+      "Don't invent testimonials, statistics, or social proof. No content that doesn't exist in the actual data model.",
+      "Don't use shadows heavier than Hover Lift on any resting surface \u2014 only modals and dropdowns earn Elevated shadow."
+    ]
+  }
+}

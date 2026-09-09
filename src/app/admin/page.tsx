@@ -6,7 +6,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
-import { Calendar, Users, Plus, TrendingUp, Clock, Music } from 'lucide-react'
+import { Calendar, Users, Plus, TrendingUp, Clock, Music, Shield } from 'lucide-react'
 import { formatDate, getEventTypeLabel, getEventTypeColor, cn } from '@/lib/utils'
 import Link from 'next/link'
 import { Button, Badge } from '@/components/ui'
@@ -23,8 +23,8 @@ function StatCard({ title, value, icon, color, href }: StatCardProps) {
   const content = (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{title}</p>
+        <p className="text-3xl font-semibold text-neutral-900 dark:text-white mt-1">{value}</p>
       </div>
       <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', color)}>
         {icon}
@@ -33,7 +33,7 @@ function StatCard({ title, value, icon, color, href }: StatCardProps) {
   )
 
   return (
-    <Card>
+    <Card className="hover:shadow-lg transition-shadow duration-200">
       <CardContent className="p-6">
         {href ? <Link href={href} className="block">{content}</Link> : content}
       </CardContent>
@@ -71,7 +71,6 @@ export default function AdminDashboardPage() {
     if (!user) return
     try {
       setLoading(true)
-
       const [eventsRes, usersRes, assignmentsRes] = await Promise.all([
         supabase.from('events').select('id, title, event_type, date, start_time, location', { count: 'exact' }).order('date', { ascending: false }).limit(5),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -88,8 +87,8 @@ export default function AdminDashboardPage() {
       })
 
       setRecentEvents(eventsRes.data || [])
-    } catch (err) {
-      console.error(err)
+    } catch {
+      // Quiet failover
     } finally {
       setLoading(false)
     }
@@ -98,45 +97,48 @@ export default function AdminDashboardPage() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 border-3 border-brand-200 dark:border-brand-800 rounded-full" />
+          <div className="absolute inset-0 border-3 border-brand-500 rounded-full animate-spin border-t-transparent" />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Panel de Administración</h1>
-        <p className="text-muted-foreground mt-1">Gestión completa del ministerio de alabanza</p>
+        <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white tracking-tight">Panel de Administración</h1>
+        <p className="text-neutral-500 dark:text-neutral-400 mt-1">Gestión completa del ministerio de alabanza</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Eventos"
           value={stats.totalEvents}
           icon={<Calendar className="w-6 h-6" />}
-          color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          color="bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400"
           href="/admin/events"
         />
         <StatCard
           title="Próximos Eventos"
           value={stats.upcomingEvents}
           icon={<Clock className="w-6 h-6" />}
-          color="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          color="bg-success/10 dark:bg-success/20 text-success dark:text-success"
           href="/admin/events"
         />
         <StatCard
           title="Miembros"
           value={stats.totalUsers}
           icon={<Users className="w-6 h-6" />}
-          color="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+          color="bg-warning/10 dark:bg-warning/20 text-warning dark:text-warning"
           href="/admin/users"
         />
         <StatCard
           title="Asignaciones Pendientes"
           value={stats.pendingAssignments}
           icon={<Music className="w-6 h-6" />}
-          color="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+          color="bg-info/10 dark:bg-info/20 text-info dark:text-info"
           href="/admin/assignments"
         />
       </div>
@@ -151,10 +153,13 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             {recentEvents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No hay eventos creados</p>
-                <Link href="/admin/events/new" className="text-primary hover:underline mt-2 inline-block">
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                  <Calendar className="w-8 h-8 text-brand-600 dark:text-brand-400" />
+                </div>
+                <p className="text-neutral-500 dark:text-neutral-400 mb-4">No hay eventos creados</p>
+                <Link href="/admin/events/new" className="text-brand-600 dark:text-brand-400 hover:underline font-medium inline-flex items-center gap-1">
+                  <Plus className="w-4 h-4" />
                   Crear primer evento
                 </Link>
               </div>
@@ -162,17 +167,17 @@ export default function AdminDashboardPage() {
               <div className="space-y-3">
                 {recentEvents.slice(0, 5).map((event) => (
                   <Link key={event.id} href={`/admin/events/${event.id}`} className="block">
-                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary transition-colors">
+                    <div className="flex items-center justify-between p-4 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors border border-neutral-100 dark:border-neutral-800">
                       <div className="flex items-center gap-3">
                         <Badge className={cn(getEventTypeColor(event.event_type))}>
                           {getEventTypeLabel(event.event_type)}
                         </Badge>
                         <div>
-                          <p className="font-medium">{event.title}</p>
-                          <p className="text-sm text-muted-foreground">{formatDate(event.date)}</p>
+                          <p className="font-medium text-neutral-900 dark:text-white">{event.title}</p>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400">{formatDate(event.date)}</p>
                         </div>
                       </div>
-                      <div className="text-right text-sm text-muted-foreground">
+                      <div className="text-right text-sm text-neutral-500 dark:text-neutral-400">
                         {event.start_time && <p>{event.start_time}</p>}
                         {event.location && <p>{event.location}</p>}
                       </div>
@@ -191,27 +196,47 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
               <Link href="/admin/events/new">
-                <Button variant="outline" className="h-24 flex-col gap-2">
-                  <Plus className="w-8 h-8" />
-                  <span>Nuevo Evento</span>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 text-left p-4">
+                  <div className="w-12 h-12 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900 dark:text-white">Nuevo Evento</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Crear ensayo, culto o sábado</p>
+                  </div>
                 </Button>
               </Link>
               <Link href="/admin/assignments">
-                <Button variant="outline" className="h-24 flex-col gap-2">
-                  <Users className="w-8 h-8" />
-                  <span>Gestionar Asignaciones</span>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 text-left p-4">
+                  <div className="w-12 h-12 rounded-xl bg-success/10 dark:bg-success/20 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-success dark:text-success" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900 dark:text-white">Gestionar Asignaciones</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Asignar voces, coros, músicos</p>
+                  </div>
                 </Button>
               </Link>
               <Link href="/admin/users">
-                <Button variant="outline" className="h-24 flex-col gap-2">
-                  <Users className="w-8 h-8" />
-                  <span>Ver Usuarios</span>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 text-left p-4">
+                  <div className="w-12 h-12 rounded-xl bg-warning/10 dark:bg-warning/20 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-warning dark:text-warning" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900 dark:text-white">Ver Usuarios</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Gestionar miembros del ministerio</p>
+                  </div>
                 </Button>
               </Link>
               <Link href="/admin/events">
-                <Button variant="outline" className="h-24 flex-col gap-2">
-                  <Calendar className="w-8 h-8" />
-                  <span>Ver Calendario</span>
+                <Button variant="outline" className="h-24 flex flex-col items-center justify-center gap-2 text-left p-4">
+                  <div className="w-12 h-12 rounded-xl bg-info/10 dark:bg-info/20 flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-info dark:text-info" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-900 dark:text-white">Ver Calendario</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">Calendario completo de eventos</p>
+                  </div>
                 </Button>
               </Link>
             </div>
