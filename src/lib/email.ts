@@ -1,10 +1,5 @@
-import { Resend } from 'resend'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-const FROM = process.env.EMAIL_FROM || 'Alabanza IBG <onboarding@resend.dev>'
 
 export interface EmailRecipient {
   email: string
@@ -63,11 +58,38 @@ export async function sendEmail(
   subject: string,
   html: string
 ): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) return false
+  const serviceId = process.env.EMAILJS_SERVICE_ID
+  const templateId = process.env.EMAILJS_TEMPLATE_ID
+  const publicKey = process.env.EMAILJS_PUBLIC_KEY
+  const privateKey = process.env.EMAILJS_PRIVATE_KEY
+
+  if (!serviceId || !templateId || !publicKey || !privateKey) {
+    console.error('EmailJS no está configurado')
+    return false
+  }
+
   try {
-    const { error } = await resend.emails.send({ from: FROM, to, subject, html })
-    return !error
-  } catch {
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        accessToken: privateKey,
+        template_params: {
+          to_email: to,
+          subject,
+          html_content: html,
+        },
+      }),
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Error al enviar correo con EmailJS:', error)
     return false
   }
 }
@@ -221,3 +243,71 @@ export async function sendPrivilegeReminderEmail(
   )
   return sendEmail(to, 'Recordatorio: registra tu privilegio esta semana', html)
 }
+
+export async function sendConfirmationEmail(
+  to: string,
+  recipientName: string | null | undefined,
+  confirmUrl: string
+): Promise<boolean> {
+  const greeting = recipientName ? `¡Hola ${recipientName}!` : '¡Hola!'
+  const html = baseLayout(
+    'Confirma tu correo electrónico',
+    `
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${esc(greeting)}</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">
+        Gracias por registrarte en la plataforma del <strong>Ministerio de Alabanza IBG</strong>.
+      </p>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.6;">
+        Por favor confirma tu dirección de correo haciendo clic en el siguiente botón para activar tu cuenta:
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+        <tr>
+          <td style="background-color:#3b82f6;border-radius:8px;padding:12px 24px;">
+            <a href="${esc(confirmUrl)}"
+               style="color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+              Confirmar mi correo →
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+        Si no solicitaste este registro, puedes ignorar este mensaje.
+      </p>
+    `
+  )
+  return sendEmail(to, 'Confirma tu correo electrónico · Alabanza IBG', html)
+}
+
+export async function sendWelcomeEmail(
+  to: string,
+  recipientName: string | null | undefined
+): Promise<boolean> {
+  const greeting = recipientName ? `¡Bienvenido/a ${recipientName}! 🎉` : '¡Bienvenido/a! 🎉'
+  const html = baseLayout(
+    'Bienvenido al Ministerio de Alabanza IBG',
+    `
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${esc(greeting)}</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">
+        Estamos muy alegres de contar contigo en el equipo del Ministerio de Alabanza de la Iglesia Bautista del Golfo.
+      </p>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.6;">
+        Desde la plataforma podrás consultar el repertorio de alabanzas, ingresar tus privilegios semanales y coordinar los tonos y canciones para los servicios.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+        <tr>
+          <td style="background-color:#f5f5f5;border-radius:8px;padding:12px 24px;">
+            <a href="${esc(process.env.NEXT_PUBLIC_APP_URL || 'https://alabanza-ibg.vercel.app')}/dashboard"
+               style="color:#0a0a0a;font-size:14px;font-weight:600;text-decoration:none;">
+              Explorar el Panel →
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">
+        "Cantad a él, cantadle salmos; hablad de todas sus maravillas." — Salmos 105:2
+      </p>
+    `
+  )
+  return sendEmail(to, '¡Bienvenido/a al Ministerio de Alabanza IBG!', html)
+}
+

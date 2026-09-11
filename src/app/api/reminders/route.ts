@@ -25,9 +25,16 @@ export async function GET(req: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !serviceKey || !process.env.RESEND_API_KEY) {
+  if (
+    !url ||
+    !serviceKey ||
+    !process.env.EMAILJS_SERVICE_ID ||
+    !process.env.EMAILJS_TEMPLATE_ID ||
+    !process.env.EMAILJS_PUBLIC_KEY ||
+    !process.env.EMAILJS_PRIVATE_KEY
+  ) {
     return NextResponse.json(
-      { error: 'Falta configuración de Supabase/Resend' },
+      { error: 'Falta configuración de Supabase o EmailJS' },
       { status: 500 }
     )
   }

@@ -36,6 +36,7 @@ export default function ProfilePage() {
     push_enabled: boolean
     assignment_reminder_hours: number
   } | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isDirty } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -115,6 +116,21 @@ export default function ProfilePage() {
       toast({ title: 'Error', description: 'No se pudo guardar el perfil', variant: 'destructive' })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/auth/delete-account', { method: 'POST' })
+      if (!res.ok) throw new Error('Error al eliminar cuenta')
+      
+      await supabase.auth.signOut()
+      window.location.href = '/login'
+    } catch (err) {
+      toast({ title: 'Error', description: 'No se pudo eliminar la cuenta', variant: 'destructive' })
+      setSaving(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -271,11 +287,43 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <p className="text-error mb-4">Estas acciones son irreversibles.</p>
-          <Button variant="destructive" onClick={() => {}}>
+          <Button variant="destructive" onClick={() => setShowDeleteModal(true)} disabled={saving} loading={saving}>
             Eliminar mi cuenta
           </Button>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div
+            className="relative w-full max-w-md bg-[var(--bg-raised)] border border-error/20 rounded-[var(--radius-xl)] shadow-2xl overflow-hidden animate-scale-in text-[var(--text-primary)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-error/20 bg-error/5">
+              <div className="w-8 h-8 rounded-full bg-error/20 text-error flex items-center justify-center">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <h2 className="text-base font-bold text-error">Eliminar cuenta</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-[var(--text-secondary)]">
+                ¿Estás completamente seguro de que deseas eliminar tu cuenta? Esta acción es irreversible, se perderá tu acceso y la asignación de privilegios pasados.
+              </p>
+              
+              <div className="flex justify-end gap-3 pt-4 mt-2">
+                <Button variant="outline" onClick={() => setShowDeleteModal(false)} disabled={saving}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteAccount} loading={saving}>
+                  Sí, eliminar mi cuenta
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

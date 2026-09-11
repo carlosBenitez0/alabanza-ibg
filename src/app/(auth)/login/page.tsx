@@ -55,6 +55,9 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const authErrorParam = searchParams.get("error");
+  const isExpired = authErrorParam === "otp_expired" || authErrorParam === "access_denied" || authErrorParam === "invalid_link" || authErrorParam === "expired";
+
   const cardRef = useGsapMountReveal<HTMLDivElement>({
     from: "bottom",
     duration: 0.6,
@@ -170,6 +173,18 @@ function LoginPageContent() {
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--color-success)]" />
               <p className="text-xs text-[var(--color-success)]">
                 ¡Cuenta creada exitosamente! Por favor inicia sesión.
+              </p>
+            </div>
+          )}
+
+          {isExpired && (
+            <div
+              className="p-3 rounded-[var(--radius-md)] bg-[var(--color-error-dark)]/20 border border-[var(--color-error)]/30 flex items-start gap-2.5"
+              role="alert"
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
+              <p className="text-xs text-[var(--color-error)]">
+                El enlace de confirmación de correo ha expirado o ya no es válido. Por favor inicia sesión con tu contraseña.
               </p>
             </div>
           )}

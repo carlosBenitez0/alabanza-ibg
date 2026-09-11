@@ -110,7 +110,7 @@ export default function RegisterPage() {
           full_name: data.fullName,
           phone: data.phone,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

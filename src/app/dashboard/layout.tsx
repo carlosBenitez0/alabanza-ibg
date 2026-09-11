@@ -83,13 +83,27 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }, [supabase, user])
 
   useEffect(() => {
-    if (user) {
-      fetchProfile()
-      fetchUnreadCount()
-    } else {
-      setProfileLoading(false)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const hasError = urlParams.get('error') || hashParams.get('error') || urlParams.get('error_code') || hashParams.get('error_code')
+      
+      if (hasError) {
+        const errCode = urlParams.get('error_code') || hashParams.get('error_code') || 'otp_expired'
+        router.replace(`/login?error=${encodeURIComponent(errCode)}`)
+        return
+      }
     }
-  }, [user, fetchProfile, fetchUnreadCount])
+
+    if (!authLoading) {
+      if (!user) {
+        router.replace('/login')
+      } else {
+        fetchProfile()
+        fetchUnreadCount()
+      }
+    }
+  }, [user, authLoading, router, fetchProfile, fetchUnreadCount])
 
   const isAdmin = profile?.role === 'admin' || profile?.role === 'leader'
 
@@ -98,7 +112,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     router.push('/login')
   }
 
-  if (authLoading || profileLoading) {
+  if (authLoading || profileLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)]">
         <div className="relative w-8 h-8">
