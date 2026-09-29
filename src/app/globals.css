@@ -120,6 +120,15 @@
   --header-h:     3.5rem;
   --bottom-nav-h: 4rem;
   --touch-min:    2.75rem;
+
+  /* Toasts sit above the phone bottom nav only on screens that have one */
+  --toast-bottom: calc(1rem + var(--safe-bottom));
+}
+
+@media (max-width: 1023px) {
+  html:has(#bottom-nav) {
+    --toast-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 0.75rem);
+  }
 }
 
 /* ─────────────────────────────────────────

@@ -1,12 +1,11 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useForm } from "react-hook-form";
+import { getAuthErrorMessage } from "@/lib/utils";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -72,7 +71,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -89,7 +88,7 @@ export default function RegisterPage() {
   const supabase = useSupabase();
 
   // Real-time password criteria state
-  const password = watch("password") || "";
+  const password = useWatch({ control, name: "password" }) || "";
 
   const passwordCriteria = [
     { label: "Mínimo 8 caracteres", met: password.length >= 8 },
@@ -102,7 +101,8 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth
+      .signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -112,14 +112,11 @@ export default function RegisterPage() {
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
-    });
+    })
+      .catch((e: Error) => ({ data: { user: null }, error: e }));
 
     if (authError) {
-      const msg =
-        authError.message === "Supabase not configured"
-          ? "Supabase no está configurado. Falta crear el archivo .env.local con tus llaves NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY."
-          : authError.message;
-      setError(msg);
+      setError(getAuthErrorMessage(authError.message));
     } else if (authData.user?.identities?.length === 0) {
       setError("Este email ya está registrado");
     } else {

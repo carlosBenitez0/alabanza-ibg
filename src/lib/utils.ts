@@ -111,3 +111,27 @@ export function generateWhatsAppMessage(
 export function generateWhatsAppUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`
 }
+/**
+ * Only allows same-site relative paths ("/dashboard/songs"). Anything else
+ * (absolute URLs, protocol-relative "//evil.com", backslash tricks) falls
+ * back to the dashboard, so redirect params can't send users off-site.
+ */
+export function safeRedirect(path: string | null | undefined, fallback = '/dashboard'): string {
+  if (!path || !path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')) return fallback
+  return path
+}
+
+/** Human message for Supabase auth errors, including network failures */
+export function getAuthErrorMessage(message: string): string {
+  if (message === 'Supabase not configured') {
+    return 'Supabase no está configurado. Faltan NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+  }
+  if (/failed to fetch|networkerror|load failed|fetch failed/i.test(message)) {
+    return 'No se pudo conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo. Si el problema sigue, avisa al administrador.'
+  }
+  if (message.includes('Invalid login credentials')) return 'Credenciales incorrectas (email o contraseña no válidos)'
+  if (message.includes('Email not confirmed')) return 'Tu correo aún no está confirmado. Revisa tu bandeja de entrada.'
+  if (message.includes('User already registered')) return 'Este email ya está registrado'
+  if (/rate limit|too many/i.test(message)) return 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'
+  return message
+}

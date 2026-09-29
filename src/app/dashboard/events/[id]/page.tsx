@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'

@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { useSupabase } from '@/hooks/use-supabase'

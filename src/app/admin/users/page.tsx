@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { Search, Users, ChevronRight, Phone } from 'lucide-react'

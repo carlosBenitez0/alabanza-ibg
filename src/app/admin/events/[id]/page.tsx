@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
@@ -92,10 +90,12 @@ export default function EditEventPage() {
     const { error } = await supabase.from('events').update(toEventRow(values)).eq('id', id)
     setSaving(false)
     if (error) {
-      toast({ title: 'Error', description: 'No se pudo guardar el evento', variant: 'destructive' })
-      return
+      toast({ title: 'Error', description: 'No se pudo guardar el evento. Solo líderes y administradores pueden editarlo.', variant: 'destructive' })
+      return false
     }
     toast({ title: 'Evento actualizado', variant: 'success' })
+    base.reload()
+    return true
   }
 
   const handleDelete = async () => {

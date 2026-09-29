@@ -5,7 +5,6 @@ import { formatFullSpanishDate, formatISOShortDate } from '@/lib/date-helpers'
 
 export const dynamic = 'force-dynamic'
 
-const REQUEST_SECRET = process.env.NOTIFICATIONS_SECRET
 
 /**
  * Ruta de recordatorios programada para ejecutarse (normalmente) lunes y miércoles vía cron.
@@ -13,11 +12,12 @@ const REQUEST_SECRET = process.env.NOTIFICATIONS_SECRET
  * y les envía un correo de recordatorio.
  */
 export async function GET(req: NextRequest) {
+  // Vercel Cron sends "Authorization: Bearer $CRON_SECRET" when that env var
+  // exists. NOTIFICATIONS_SECRET allows triggering it by hand. Headers such as
+  // x-vercel-cron are not trusted: anyone can send them.
   const authHeader = req.headers.get('authorization')
-  const isVercelCron = req.headers.get('x-vercel-cron') === '1'
-  const isAuthorized =
-    isVercelCron ||
-    (REQUEST_SECRET && authHeader === `Bearer ${REQUEST_SECRET}`)
+  const secrets = [process.env.CRON_SECRET, process.env.NOTIFICATIONS_SECRET].filter(Boolean)
+  const isAuthorized = secrets.some((secret) => authHeader === `Bearer ${secret}`)
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -76,10 +76,17 @@ export async function GET(req: NextRequest) {
   )
 
   // Obtener todos los usuarios
-  const { data: usersData, error: usersError } = await admin.auth.admin.listUsers()
+  const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (usersError) {
     return NextResponse.json({ error: 'Error al listar usuarios' }, { status: 500 })
   }
+
+  // Quienes apagaron "Notificaciones por email" en su perfil
+  const { data: prefs } = await admin
+    .from('notification_preferences')
+    .select('profile_id')
+    .eq('email_enabled', false)
+  const optedOut = new Set((prefs || []).map((p) => p.profile_id))
 
   // Obtener los profile_ids que ya registraron privilegios en alguna fecha objetivo
   const { data: registrations } = await admin
@@ -93,7 +100,7 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   for (const u of usersData?.users || []) {
-    if (!u.email || registeredIds.has(u.id)) {
+    if (!u.email || registeredIds.has(u.id) || optedOut.has(u.id)) {
       skipped++
       continue
     }

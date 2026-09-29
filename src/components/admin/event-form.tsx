@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input, Textarea, Button } from '@/components/ui'
@@ -42,14 +42,16 @@ export function EventForm({
   saving,
 }: {
   defaultValues?: Partial<EventFormValues>
-  onSubmit: (values: EventFormValues) => void | Promise<void>
+  /** Return true when saved so the form becomes pristine again */
+  onSubmit: (values: EventFormValues) => boolean | void | Promise<boolean | void>
   submitLabel: string
   saving?: boolean
 }) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
+    reset,
     setValue,
     formState: { errors, isDirty },
   } = useForm<EventFormValues>({
@@ -66,10 +68,14 @@ export function EventForm({
     },
   })
 
-  const selectedType = watch('event_type')
+  const selectedType = useWatch({ control, name: 'event_type' })
+
+  const submit = async (values: EventFormValues) => {
+    if ((await onSubmit(values)) === true) reset(values)
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-2xl" noValidate>
+    <form onSubmit={handleSubmit(submit)} className="space-y-5 max-w-2xl" noValidate>
       <fieldset>
         <legend className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
           Tipo de evento

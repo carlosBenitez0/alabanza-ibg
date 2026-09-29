@@ -1,9 +1,12 @@
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
 
 export interface EmailRecipient {
+  id: string
   email: string
   full_name?: string | null
+  email_enabled: boolean
+  push_enabled: boolean
 }
 
 const esc = (value: string): string =>
@@ -95,26 +98,29 @@ export async function sendEmail(
 }
 
 /**
- * Obtiene todos los usuarios con email desde Supabase (auth.admin).
- * Requiere SUPABASE_SERVICE_ROLE_KEY.
+ * All users with an email, plus their notification preferences
+ * (missing preferences count as enabled). Requires SUPABASE_SERVICE_ROLE_KEY.
  */
 export async function getAllUserEmails(): Promise<EmailRecipient[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !serviceKey) return []
+  const admin = getAdminClient()
+  if (!admin) return []
 
   try {
-    const admin = createAdminClient(url, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-    const { data, error } = await admin.auth.admin.listUsers()
+    const [{ data, error }, { data: prefs }] = await Promise.all([
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+      admin.from('notification_preferences').select('profile_id, email_enabled, push_enabled'),
+    ])
     if (error || !data?.users) return []
 
+    const prefsById = new Map((prefs || []).map((p) => [p.profile_id as string, p]))
     return data.users
-      .filter(u => u.email)
-      .map(u => ({
+      .filter((u) => u.email)
+      .map((u) => ({
+        id: u.id,
         email: u.email!,
         full_name: u.user_metadata?.full_name || null,
+        email_enabled: prefsById.get(u.id)?.email_enabled !== false,
+        push_enabled: prefsById.get(u.id)?.push_enabled !== false,
       }))
   } catch {
     return []
@@ -125,16 +131,10 @@ export async function getAllUserEmails(): Promise<EmailRecipient[]> {
  * Obtiene el perfil de un usuario (full_name y email) para mensajes de autoría.
  */
 export async function getAuthorInfo(userId: string): Promise<{ name: string; email: string | null }> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !serviceKey) {
-    return { name: 'Un miembro', email: null }
-  }
+  const admin = getAdminClient()
+  if (!admin) return { name: 'Un miembro', email: null }
 
   try {
-    const admin = createAdminClient(url, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
     const { data } = await admin.auth.admin.getUserById(userId)
     const name = data?.user?.user_metadata?.full_name || data?.user?.email || 'Un miembro'
     return { name, email: data?.user?.email || null }

@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { useAuth } from '@/components/providers/auth-provider'

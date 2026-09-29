@@ -1,37 +1,35 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import type { EmailOtpType } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { safeRedirect } from '@/lib/utils'
 
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const error = searchParams.get('error')
-  const errorCode = searchParams.get('error_code')
+/**
+ * Landing point for every Supabase email link (magic link, signup
+ * confirmation, recovery). Supports both link formats:
+ *   - PKCE:        ?code=...
+ *   - token hash:  ?token_hash=...&type=magiclink|signup|recovery|email
+ * The session cookies are written through next/headers cookies().
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams, origin } = request.nextUrl
+  const next = safeRedirect(searchParams.get('next'))
+  const errorCode = searchParams.get('error_code') || searchParams.get('error')
 
-  if (error || errorCode) {
-    const reason = errorCode || error || 'expired'
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(reason)}`)
+  if (errorCode) {
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorCode)}`)
   }
 
-  if (code) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return (request as unknown as { cookies: { getAll: () => { name: string; value: string }[] } }).cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            // Note: in Next.js Server Route Handlers, cookie setting is managed by response
-          },
-        },
-      }
-    )
+  const supabase = await createClient()
+  const code = searchParams.get('code')
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
 
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    if (!exchangeError) {
-      return NextResponse.redirect(`${origin}/dashboard`)
-    }
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) return NextResponse.redirect(`${origin}${next}`)
+  } else if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+    if (!error) return NextResponse.redirect(`${origin}${next}`)
   }
 
   return NextResponse.redirect(`${origin}/login?error=otp_expired`)

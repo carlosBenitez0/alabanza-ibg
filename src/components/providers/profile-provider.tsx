@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, ReactNode, useCallback, useContext } from 'react'
+import { createContext, ReactNode, useCallback, useContext, useEffect } from 'react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useAsyncData } from '@/hooks/use-async-data'
@@ -44,6 +44,27 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const profileQuery = useAsyncData(userId ? fetchProfile : null, null)
   const unreadQuery = useAsyncData(userId ? fetchUnread : null, 0)
 
+  // Keep the unread badge live: Realtime pushes new rows; returning to the
+  // tab also refreshes in case Realtime is off for the notifications table
+  const refreshUnread = unreadQuery.reload
+  useEffect(() => {
+    if (!userId || typeof supabase.channel !== 'function') return
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `profile_id=eq.${userId}` },
+        () => refreshUnread()
+      )
+      .subscribe()
+    const onVisible = () => document.visibilityState === 'visible' && refreshUnread()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, userId, refreshUnread])
+
   const profile = profileQuery.data
   const isAdmin = profile?.role === 'admin' || profile?.role === 'leader'
   const loading = authLoading || (!!userId && profileQuery.loading)
@@ -55,7 +76,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         loading,
         isAdmin,
         unreadCount: unreadQuery.data,
-        refreshUnread: unreadQuery.reload,
+        refreshUnread,
         refreshProfile: profileQuery.reload,
       }}
     >

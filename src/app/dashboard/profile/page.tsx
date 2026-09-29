@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useCallback, useEffect, useState } from 'react'
@@ -212,8 +210,8 @@ export default function ProfilePage() {
               disabled={saving}
             />
             <Switch
-              label="Notificaciones en la app"
-              description="Alertas en tiempo real dentro de la aplicación"
+              label="Avisos dentro de la app"
+              description="Nuevos privilegios, alabanzas y asignaciones en la pestaña Avisos"
               {...register('push_enabled')}
               disabled={saving}
             />

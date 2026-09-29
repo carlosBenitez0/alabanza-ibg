@@ -26,6 +26,7 @@ export function BottomNav({
 
   return (
     <nav
+      id="bottom-nav"
       aria-label="Navegación inferior"
       className="lg:hidden fixed inset-x-0 bottom-0 z-[300] border-t border-[var(--border-subtle)] bg-[var(--bg-page)]/95 backdrop-blur-md pb-safe pl-safe pr-safe"
     >

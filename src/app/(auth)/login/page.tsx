@@ -1,11 +1,10 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { getAuthErrorMessage, safeRedirect } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,7 +47,7 @@ type MagicLinkForm = z.infer<typeof magicLinkSchema>;
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const redirectTo = safeRedirect(searchParams.get("redirectTo"));
   const justRegistered = searchParams.get("registered") === "true";
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -88,19 +87,12 @@ function LoginPageContent() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
+    const { error } = await supabase.auth
+      .signInWithPassword({ email: data.email, password: data.password })
+      .catch((e: Error) => ({ error: e }));
 
     if (error) {
-      let msg = error.message;
-      if (error.message === "Supabase not configured") {
-        msg =
-          "Supabase no está configurado. Falta crear el archivo .env.local con las credenciales de tu proyecto Supabase.";
-      } else if (error.message.includes("Invalid login credentials")) {
-        msg = "Credenciales incorrectas (email o contraseña no válidos)";
-      }
+      const msg = getAuthErrorMessage(error.message);
       setError(msg);
       toast({
         title: "Error de ingreso",
@@ -121,16 +113,17 @@ function LoginPageContent() {
 
   const onMagicLinkSubmit = async (data: MagicLinkForm) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: data.magicEmail,
-      options: { emailRedirectTo: `${window.location.origin}${redirectTo}` },
-    });
+    const { error } = await supabase.auth
+      .signInWithOtp({
+        email: data.magicEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
+      })
+      .catch((e: Error) => ({ error: e }));
 
     if (error) {
-      const msg =
-        error.message === "Supabase not configured"
-          ? "Supabase no está configurado en .env.local."
-          : error.message;
+      const msg = getAuthErrorMessage(error.message);
       toast({ title: "Error", description: msg, variant: "destructive" });
     } else {
       toast({

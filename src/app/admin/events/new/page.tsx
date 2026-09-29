@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -28,13 +26,14 @@ export default function NewEventPage() {
       .single()
 
     if (error || !data) {
-      toast({ title: 'Error', description: 'No se pudo crear el evento', variant: 'destructive' })
+      toast({ title: 'Error', description: 'No se pudo crear el evento. Solo líderes y administradores pueden crearlo.', variant: 'destructive' })
       setSaving(false)
-      return
+      return false
     }
 
     toast({ title: 'Evento creado', description: 'Ahora puedes asignar al equipo.', variant: 'success' })
     router.replace(`/admin/events/${data.id}`)
+    return true
   }
 
   return (

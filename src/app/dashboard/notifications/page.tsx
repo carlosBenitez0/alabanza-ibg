@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useAuth } from '@/components/providers/auth-provider'
 import { useProfile } from '@/components/providers/profile-provider'
 import { useSupabase } from '@/hooks/use-supabase'
