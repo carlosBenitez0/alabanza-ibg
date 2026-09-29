@@ -66,6 +66,7 @@ function LoginPageContent() {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -109,6 +110,27 @@ function LoginPageContent() {
       router.refresh();
     }
     setLoading(false);
+  };
+
+  // Unconfirmed accounts can't sign in with a password, so an expired
+  // confirmation link needs a fresh email, not a login attempt
+  const [resending, setResending] = useState(false);
+  const resendConfirmation = async () => {
+    const email = getValues("email")?.trim();
+    if (!email) {
+      toast({ title: "Escribe tu email", description: "Ingresa tu correo en el campo Email y vuelve a pulsar Reenviar.", variant: "warning" });
+      return;
+    }
+    setResending(true);
+    const { error } = await supabase.auth
+      .resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } })
+      .catch((e: Error) => ({ error: e }));
+    setResending(false);
+    if (error) {
+      toast({ title: "No se pudo reenviar", description: getAuthErrorMessage(error.message), variant: "destructive" });
+    } else {
+      toast({ title: "Correo reenviado", description: `Revisa ${email} y abre el enlace nuevo (el anterior ya no sirve).`, variant: "success" });
+    }
   };
 
   const onMagicLinkSubmit = async (data: MagicLinkForm) => {
@@ -174,9 +196,16 @@ function LoginPageContent() {
               role="alert"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
-              <p className="text-sm text-[var(--color-error)]">
-                El enlace de confirmación de correo ha expirado o ya no es válido. Por favor inicia sesión con tu contraseña.
-              </p>
+              <div className="space-y-2 min-w-0">
+                <p className="text-sm text-[var(--color-error)]">
+                  El enlace del correo expiró o ya se usó. Si ya confirmaste tu cuenta, inicia sesión con tu contraseña.
+                  Si no, escribe tu email abajo y pide un enlace nuevo.
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={resendConfirmation} loading={resending} fullWidthMobile>
+                  <Mail className="w-4 h-4" />
+                  Reenviar correo de confirmación
+                </Button>
+              </div>
             </div>
           )}
 

@@ -7,6 +7,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Supabase sends failed email links to the Site URL root
+    '/',
     '/dashboard/:path*',
     '/admin/:path*',
     '/login',
