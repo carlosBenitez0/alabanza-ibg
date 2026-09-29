@@ -1,5 +1,11 @@
 import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+// Teach tailwind-merge the custom `text-caption` size (globals.css @theme),
+// otherwise it is mistaken for a text color and dropped next to one
+const twMerge = extendTailwindMerge({
+  extend: { classGroups: { 'font-size': [{ text: ['caption'] }] } },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -37,13 +43,14 @@ export function getEventTypeLabel(type: string): string {
   return labels[type] || type
 }
 
+// Event types are structural, not status: grayscale only (DESIGN.md reserves color for states)
 export function getEventTypeColor(type: string): string {
   const colors: Record<string, string> = {
-    rehearsal: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    service: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-    saturday: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    rehearsal: 'bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-normal)]',
+    service: 'bg-[var(--text-primary)] text-[var(--text-inverse)] border border-[var(--text-primary)]',
+    saturday: 'bg-[var(--color-gs-3)] text-[var(--color-gs-11)] border border-[var(--color-gs-5)]',
   }
-  return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+  return colors[type] || 'bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'
 }
 
 export function getAssignmentRoleLabel(role: string): string {
@@ -68,11 +75,11 @@ export function getAssignmentStatusLabel(status: string): string {
 
 export function getAssignmentStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    confirmed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    declined: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    pending: 'bg-[var(--color-warning-dark)]/30 text-[var(--color-warning)] border border-[var(--color-warning)]/40',
+    confirmed: 'bg-[var(--color-success-dark)]/30 text-[var(--color-success)] border border-[var(--color-success)]/40',
+    declined: 'bg-[var(--color-error-dark)]/30 text-[var(--color-error)] border border-[var(--color-error)]/40',
   }
-  return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+  return colors[status] || 'bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'
 }
 
 export function getSongListStatusLabel(status: string): string {

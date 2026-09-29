@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,7 +17,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Music,
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/components/providers/toast-provider";
@@ -143,14 +143,12 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)] px-4 py-12 text-[var(--text-primary)]">
+    <div className="min-h-dvh flex items-start sm:items-center justify-center bg-[var(--bg-page)] px-4 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] sm:py-12 text-[var(--text-primary)]">
       <div ref={cardRef} className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold">
-              <Music className="w-5 h-5" />
-            </div>
+        <div className="text-center mb-6 sm:mb-8">
+          <Link href="/" className="inline-flex items-center gap-3 mb-4 min-h-11">
+            <Image src="/ibglogo.png" alt="" width={28} height={48} priority className="h-10 w-auto" />
             <span className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
               Alabanza IBG
             </span>
@@ -158,20 +156,20 @@ function LoginPageContent() {
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Iniciar Sesión
           </h1>
-          <p className="text-xs text-[var(--text-tertiary)] mt-1">
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">
             Accede a tu panel de ministerio
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-8 space-y-6">
+        <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-5 sm:p-8 space-y-5 sm:space-y-6">
           {justRegistered && (
             <div
               className="p-3 rounded-[var(--radius-md)] bg-[var(--color-success-dark)]/20 border border-[var(--color-success)]/30 flex items-center gap-2.5"
               role="status"
             >
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--color-success)]" />
-              <p className="text-xs text-[var(--color-success)]">
+              <p className="text-sm text-[var(--color-success)]">
                 ¡Cuenta creada exitosamente! Por favor inicia sesión.
               </p>
             </div>
@@ -183,7 +181,7 @@ function LoginPageContent() {
               role="alert"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
-              <p className="text-xs text-[var(--color-error)]">
+              <p className="text-sm text-[var(--color-error)]">
                 El enlace de confirmación de correo ha expirado o ya no es válido. Por favor inicia sesión con tu contraseña.
               </p>
             </div>
@@ -195,7 +193,7 @@ function LoginPageContent() {
               role="alert"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
-              <p className="text-xs text-[var(--color-error)]">{error}</p>
+              <p className="text-sm text-[var(--color-error)]">{error}</p>
             </div>
           )}
 
@@ -226,7 +224,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                  className="rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)]"
                   aria-label={
                     showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                   }
@@ -293,11 +291,11 @@ function LoginPageContent() {
             </Button>
           </form>
 
-          <p className="pt-2 text-center text-xs text-[var(--text-tertiary)]">
+          <p className="pt-2 text-center text-sm text-[var(--text-tertiary)]">
             ¿No tienes cuenta?{" "}
             <Link
               href="/register"
-              className="text-[var(--text-primary)] hover:underline font-medium transition-colors"
+              className="inline-flex items-center min-h-11 px-1 text-[var(--text-primary)] underline-offset-4 hover:underline font-medium transition-colors"
             >
               Regístrate
             </Link>
@@ -312,7 +310,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)]">
+        <div className="min-h-dvh flex items-center justify-center bg-[var(--bg-page)]">
           <div className="relative w-8 h-8">
             <div className="absolute inset-0 border-2 border-[var(--border-strong)] rounded-full" />
             <div className="absolute inset-0 border-2 border-[var(--text-primary)] rounded-full animate-spin border-t-transparent" />

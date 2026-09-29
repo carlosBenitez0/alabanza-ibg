@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { CatalogSong } from '@/types/privileges'
 import { useSupabase } from '@/hooks/use-supabase'
 import { saveLocalSong } from '@/lib/song-storage'
-import { Button, Badge, Textarea } from '@/components/ui'
-import { Music, FileText, X, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Printer } from 'lucide-react'
+import { Button, Badge, Textarea, Modal } from '@/components/ui'
+import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Printer, WrapText } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
 import { ALL_MUSIC_KEYS } from '@/components/privileges/song-autocomplete'
 import { cn } from '@/lib/utils'
@@ -27,18 +27,46 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
   const [tabContent, setTabContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  // Chord sheets rely on column alignment, so lines scroll sideways unless the user opts in
+  const [wrapLines, setWrapLines] = useState(false)
 
   const fontSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl']
 
-  useEffect(() => {
+  // Reset the viewer whenever a different song is opened (during render, not in an effect)
+  const [shownSong, setShownSong] = useState<CatalogSong | null>(null)
+  if (song !== shownSong) {
+    setShownSong(song)
     if (song) {
       setTabContent(song.tablature_content || '')
       setIsEditing(!song.has_tablature && !song.tablature_content)
       setIsFullscreen(false)
     }
-  }, [song])
+  }
 
-  if (!isOpen || !song) return null
+  // Stage mode: keep the phone screen awake while reading chords
+  useEffect(() => {
+    if (!isOpen || !isFullscreen || !('wakeLock' in navigator)) return
+    let lock: WakeLockSentinel | null = null
+    let cancelled = false
+    const request = async () => {
+      try {
+        lock = await navigator.wakeLock.request('screen')
+        if (cancelled) lock.release()
+      } catch {
+        // Not allowed (battery saver, unsupported browser): stage mode still works
+      }
+    }
+    const onVisible = () => document.visibilityState === 'visible' && request()
+    request()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+      lock?.release().catch(() => {})
+    }
+  }, [isOpen, isFullscreen])
+
+  if (!song) return null
 
   const getKeyLabel = (code?: string | null) => {
     if (!code) return 'C'
@@ -67,12 +95,16 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
       return
     }
 
-    const keyLabel = getKeyLabel(song.default_key)
+    const escapeHtml = (value: string) =>
+      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const keyLabel = escapeHtml(getKeyLabel(song.default_key))
+    const safeTitle = escapeHtml(song.title)
+    const safeContent = escapeHtml(tabContent)
 
     printWindow.document.write(`
       <html>
         <head>
-          <title>${song.title} - Tablatura</title>
+          <title>${safeTitle} - Tablatura</title>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -124,12 +156,12 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
         <body>
           <div class="header">
             <div>
-              <h1 class="title">${song.title}</h1>
+              <h1 class="title">${safeTitle}</h1>
               <div class="subtitle">Ministerio de Alabanza IBG</div>
             </div>
             <div class="key-badge">Tono: ${keyLabel}</div>
           </div>
-          <pre class="content">${tabContent}</pre>
+          <pre class="content">${safeContent}</pre>
           <script>
             window.onload = function() {
               window.print();
@@ -180,175 +212,147 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
     }
   }
 
-  return (
-    <div className={cn(
-      'fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in',
-      isFullscreen ? 'p-0' : 'p-4'
-    )}>
-      <div
-        className={cn(
-          'relative bg-[var(--bg-raised)] border border-[var(--border-normal)] shadow-2xl flex flex-col overflow-hidden text-[var(--text-primary)] transition-all duration-300',
-          isFullscreen
-            ? 'w-screen h-screen rounded-none border-none max-w-none max-h-none'
-            : 'w-full max-w-2xl max-h-[90vh] rounded-[var(--radius-xl)] animate-scale-in'
-        )}
-        onClick={(e) => e.stopPropagation()}
+  const toolButton =
+    'shrink-0 inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 px-2.5 rounded-[var(--radius-md)] border border-[var(--border-normal)] bg-[var(--bg-surface)] text-sm sm:text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-colors'
+
+  const viewToolbar = (
+    <div className="scroll-x flex items-center gap-2 -mx-1 px-1" role="toolbar" aria-label="Herramientas de tablatura">
+      <button
+        type="button"
+        className={toolButton}
+        onClick={() => setFontSizeIndex((prev) => Math.max(0, prev - 1))}
+        disabled={fontSizeIndex === 0}
+        aria-label="Reducir letra"
       >
-        {/* Modal Header */}
-        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-page)]">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <FileText className="w-5 h-5 text-[var(--text-primary)]" />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-bold tracking-tight text-[var(--text-primary)] leading-tight break-words">
-                  {song.title}
-                </h2>
-                <Badge variant="brand" size="sm" className="whitespace-nowrap flex-shrink-0 font-mono">
-                  {getKeyLabel(song.default_key)}
-                </Badge>
-              </div>
-              <p className="text-xs text-[var(--text-tertiary)]">
-                Acordes y Tablatura del Ministerio {isFullscreen && '• Modo Escenario / Pantalla Completa'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-            {/* Fullscreen Toggle Button */}
-            {!isEditing && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                aria-label={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                title={isFullscreen ? 'Salir de pantalla completa' : 'Modo Escenario / Pantalla Completa'}
-              >
-                {isFullscreen ? <Minimize2 className="w-4 h-4 text-[var(--text-primary)]" /> : <Maximize2 className="w-4 h-4 text-[var(--text-secondary)]" />}
-              </Button>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-raised)] transition-colors flex-shrink-0"
-              aria-label="Cerrar modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {!isEditing ? (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <span className="text-xs font-mono text-[var(--text-tertiary)] uppercase tracking-wider">
-                  Cifrado y Acordes:
-                </span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Font Size Controls */}
-                  <div className="flex items-center gap-1 bg-[var(--bg-surface)] border border-[var(--border-normal)] rounded-[var(--radius-md)] p-1">
-                    <button
-                      type="button"
-                      onClick={() => setFontSizeIndex(prev => Math.max(0, prev - 1))}
-                      disabled={fontSizeIndex === 0}
-                      className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30"
-                      title="Reducir letra"
-                    >
-                      <ZoomOut className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="text-[10px] font-mono px-1.5 text-[var(--text-secondary)] uppercase">
-                      Letra
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setFontSizeIndex(prev => Math.min(fontSizes.length - 1, prev + 1))}
-                      disabled={fontSizeIndex === fontSizes.length - 1}
-                      className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30"
-                      title="Aumentar letra"
-                    >
-                      <ZoomIn className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <Button variant="ghost" size="sm" className="text-xs h-8 px-2.5 whitespace-nowrap" onClick={handleCopy}>
-                    {copied ? <Check className="w-3.5 h-3.5 mr-1 text-[var(--color-success)]" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                    {copied ? 'Copiado' : 'Copiar'}
-                  </Button>
-                  {tabContent && (
-                    <Button variant="outline" size="sm" className="text-xs h-8 px-2.5 whitespace-nowrap" onClick={handleExportPDF}>
-                      <Printer className="w-3.5 h-3.5 mr-1" />
-                      Exportar PDF
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="text-xs h-8 px-2.5 whitespace-nowrap" onClick={() => setIsEditing(true)}>
-                    <Edit3 className="w-3.5 h-3.5 mr-1" />
-                    Editar Tablatura
-                  </Button>
-                </div>
-              </div>
-
-              {tabContent ? (
-                <pre className={cn(
-                  'p-5 rounded-[var(--radius-md)] bg-[var(--bg-page)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed overflow-x-auto select-all transition-all duration-150',
-                  fontSizes[fontSizeIndex]
-                )}>
-                  {tabContent}
-                </pre>
-              ) : (
-                <div className="p-8 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-xs text-[var(--text-tertiary)] space-y-3">
-                  <FileText className="w-8 h-8 text-[var(--text-tertiary)] mx-auto" />
-                  <p>No se ha agregado la tablatura/acordes para esta canción aún.</p>
-                  <Button size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                    Agregar Tablatura / Acordes
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <form onSubmit={handleSaveTablature} className="space-y-4">
-              <Textarea
-                label="Pegar o Escribir los Acordes / Tablatura *"
-                placeholder={`Intro: C - F - C - F\n\nVerso:\nC                      F             C\nTe amo Dios, Tu misericordia nunca me ha fallado...`}
-                value={tabContent}
-                onChange={(e) => setTabContent(e.target.value)}
-                rows={12}
-                disabled={loading}
-                className="font-mono text-xs"
-                required
-              />
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                {song.tablature_content && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => setIsEditing(false)} disabled={loading}>
-                    Cancelar
-                  </Button>
-                )}
-                <Button type="submit" size="sm" loading={loading}>
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                  Guardar Tablatura
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-page)]">
-          <span className="text-xs font-mono text-[var(--text-tertiary)]">
-            {isFullscreen ? 'Presiona Esc o el icono para salir del modo escenario' : 'Alabanza IBG'}
-          </span>
-          <Button size="sm" variant="outline" onClick={onClose}>
-            Cerrar
-          </Button>
-        </div>
-      </div>
+        <ZoomOut className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        className={toolButton}
+        onClick={() => setFontSizeIndex((prev) => Math.min(fontSizes.length - 1, prev + 1))}
+        disabled={fontSizeIndex === fontSizes.length - 1}
+        aria-label="Aumentar letra"
+      >
+        <ZoomIn className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        className={cn(toolButton, wrapLines && 'text-[var(--text-primary)] border-[var(--text-secondary)]')}
+        onClick={() => setWrapLines((w) => !w)}
+        aria-pressed={wrapLines}
+      >
+        <WrapText className="w-4 h-4" aria-hidden="true" />
+        <span>Ajustar</span>
+      </button>
+      {tabContent && (
+        <>
+          <button type="button" className={toolButton} onClick={handleCopy}>
+            {copied ? <Check className="w-4 h-4 text-[var(--color-success)]" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+            <span>{copied ? 'Copiado' : 'Copiar'}</span>
+          </button>
+          <button type="button" className={toolButton} onClick={handleExportPDF}>
+            <Printer className="w-4 h-4" aria-hidden="true" />
+            <span>PDF</span>
+          </button>
+        </>
+      )}
+      <button type="button" className={toolButton} onClick={() => setIsEditing(true)}>
+        <Edit3 className="w-4 h-4" aria-hidden="true" />
+        <span>Editar</span>
+      </button>
     </div>
+  )
+
+  const editFooter = (
+    <>
+      {song.tablature_content && (
+        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading}>
+          Cancelar
+        </Button>
+      )}
+      <Button type="submit" form="tab-form" loading={loading}>
+        <CheckCircle2 className="w-4 h-4" />
+        Guardar Tablatura
+      </Button>
+    </>
+  )
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      fullscreen={isFullscreen}
+      fullscreenMobile
+      dismissible={!loading}
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          {song.title}
+          <Badge variant="brand" size="sm" className="font-mono">{getKeyLabel(song.default_key)}</Badge>
+        </span>
+      }
+      description={isFullscreen ? 'Modo escenario · la pantalla se mantiene encendida' : 'Acordes y tablatura del ministerio'}
+      icon={
+        <div className="hidden sm:flex w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] items-center justify-center">
+          <FileText className="w-5 h-5 text-[var(--text-primary)]" aria-hidden="true" />
+        </div>
+      }
+      headerActions={
+        !isEditing && (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="touch-target sm:min-h-9 sm:min-w-9 flex items-center justify-center rounded-[var(--radius)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-raised)] transition-colors"
+            aria-label={isFullscreen ? 'Salir del modo escenario' : 'Modo escenario'}
+            aria-pressed={isFullscreen}
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
+        )
+      }
+      footer={isEditing ? editFooter : viewToolbar}
+      bodyClassName={cn(!isEditing && 'px-3 sm:px-6')}
+    >
+      {!isEditing ? (
+        tabContent ? (
+          <pre
+            className={cn(
+              'p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--bg-page)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)] leading-relaxed overflow-x-auto overscroll-x-contain',
+              wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
+              fontSizes[fontSizeIndex]
+            )}
+          >
+            {tabContent}
+          </pre>
+        ) : (
+          <div className="p-6 sm:p-8 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)] space-y-4">
+            <FileText className="w-8 h-8 mx-auto" aria-hidden="true" />
+            <p>No se ha agregado la tablatura/acordes para esta canción aún.</p>
+            <Button onClick={() => setIsEditing(true)} fullWidthMobile>
+              <Edit3 className="w-4 h-4" />
+              Agregar Tablatura / Acordes
+            </Button>
+          </div>
+        )
+      ) : (
+        <form id="tab-form" onSubmit={handleSaveTablature} className="h-full flex flex-col">
+          <Textarea
+            id="tab-content"
+            label="Pegar o escribir los acordes / tablatura"
+            placeholder={`Intro: C - F - C - F\n\nVerso:\nC                      F             C\nTe amo Dios, Tu misericordia nunca me ha fallado...`}
+            value={tabContent}
+            onChange={(e) => setTabContent(e.target.value)}
+            rows={14}
+            disabled={loading}
+            className="font-mono text-base sm:text-xs whitespace-pre min-h-[50dvh]"
+            wrap="off"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            required
+          />
+        </form>
+      )}
+    </Modal>
   )
 }

@@ -2,8 +2,8 @@
 
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS } from '@/types/privileges'
 import { formatFullSpanishDate } from '@/lib/date-helpers'
-import { Button, Badge } from '@/components/ui'
-import { Calendar, Guitar, Mic, Users, Music, X, UserCheck, FileText } from 'lucide-react'
+import { Button, Badge, Modal } from '@/components/ui'
+import { Calendar, Guitar, Mic, Users, Music, UserCheck, FileText } from 'lucide-react'
 
 interface PrivilegeDetailModalProps {
   privilege: WeeklyPrivilege | null
@@ -11,145 +11,98 @@ interface PrivilegeDetailModalProps {
   onClose: () => void
 }
 
-export function PrivilegeDetailModal({
-  privilege,
-  isOpen,
-  onClose,
-}: PrivilegeDetailModalProps) {
-  if (!isOpen || !privilege) return null
+function PrivilegeIcon({ name }: { name?: string }) {
+  const className = 'w-5 h-5 text-[var(--text-primary)]'
+  switch (name) {
+    case 'Guitar': return <Guitar className={className} aria-hidden="true" />
+    case 'Mic': return <Mic className={className} aria-hidden="true" />
+    case 'Users': return <Users className={className} aria-hidden="true" />
+    default: return <Music className={className} aria-hidden="true" />
+  }
+}
 
-  const definition = PRIVILEGE_DEFINITIONS.find(p => p.key === privilege.privilege_key)
+export function PrivilegeDetailModal({ privilege, isOpen, onClose }: PrivilegeDetailModalProps) {
+  if (!privilege) return null
+
+  const definition = PRIVILEGE_DEFINITIONS.find((p) => p.key === privilege.privilege_key)
   const formattedDate = formatFullSpanishDate(privilege.assigned_date)
 
-  const getIcon = (iconName?: string) => {
-    switch (iconName) {
-      case 'Guitar': return <Guitar className="w-5 h-5 text-[var(--text-primary)]" />
-      case 'Mic': return <Mic className="w-5 h-5 text-[var(--text-primary)]" />
-      case 'Users': return <Users className="w-5 h-5 text-[var(--text-primary)]" />
-      case 'Music': default: return <Music className="w-5 h-5 text-[var(--text-primary)]" />
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div
-        className="relative w-full max-w-lg bg-[var(--bg-raised)] border border-[var(--border-normal)] rounded-[var(--radius-xl)] shadow-2xl overflow-hidden animate-scale-in text-[var(--text-primary)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-page)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center">
-              {getIcon(definition?.iconName)}
-            </div>
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-[var(--text-primary)]">
-                {definition?.title || 'Detalle del Privilegio'}
-              </h2>
-              <p className="text-xs text-[var(--text-tertiary)]">
-                {definition?.description}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-raised)] transition-colors"
-            aria-label="Cerrar detalle"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={definition?.title || 'Detalle del Privilegio'}
+      description={definition?.description}
+      icon={
+        <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center">
+          <PrivilegeIcon name={definition?.iconName} />
         </div>
+      }
+      footer={<Button onClick={onClose}>Cerrar</Button>}
+    >
+      <div className="space-y-6">
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+            <dt className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider">Asignado a</dt>
+            <dd className="flex items-center gap-2 text-sm font-semibold">
+              <UserCheck className="w-4 h-4 text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
+              {privilege.profile_name || 'Miembro'}
+            </dd>
+          </div>
+          <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
+            <dt className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider">Fecha del servicio</dt>
+            <dd className="flex items-center gap-2 text-sm font-semibold">
+              <Calendar className="w-4 h-4 text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
+              {formattedDate}
+            </dd>
+          </div>
+        </dl>
 
-        {/* Modal Content */}
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Member & Date Section */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
-              <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider block">
-                Asignado a:
-              </span>
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-[var(--text-secondary)]" />
-                <span className="font-semibold text-xs text-[var(--text-primary)]">
-                  {privilege.profile_name || 'Miembro'}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1">
-              <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider block">
-                Fecha del Servicio:
-              </span>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[var(--text-secondary)]" />
-                <span className="font-semibold text-xs text-[var(--text-primary)]">
-                  {formattedDate}
-                </span>
-              </div>
-            </div>
+        <section className="space-y-3" aria-labelledby="detail-songs-title">
+          <div className="flex items-center justify-between gap-2">
+            <h3 id="detail-songs-title" className="text-sm font-semibold flex items-center gap-2">
+              <Music className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+              Alabanzas registradas
+            </h3>
+            <Badge variant="outline" size="sm">{privilege.songs?.length || 0} canciones</Badge>
           </div>
 
-          {/* Setlist Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                <Music className="w-4 h-4 text-[var(--text-secondary)]" />
-                Listado de Alabanzas Registradas
-              </h3>
-              <Badge variant="outline" size="sm">
-                {privilege.songs?.length || 0} Canciones
-              </Badge>
-            </div>
-
-            {privilege.songs && privilege.songs.length > 0 ? (
-              <div className="space-y-2">
-                {privilege.songs.map((song, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-[var(--text-tertiary)] w-5">{idx + 1}.</span>
-                      <span className="font-medium text-[var(--text-primary)]">{song.title}</span>
-                    </div>
-                    {song.key && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                        Tono: {song.key}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-xs text-[var(--text-tertiary)]">
-                No se registraron canciones para este privilegio aún.
-              </div>
-            )}
-          </div>
-
-          {/* Notes Section */}
-          {privilege.notes && (
-            <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
-              <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
-                Notas Adicionales:
-              </span>
-              <p className="text-xs text-[var(--text-secondary)] italic">
-                "{privilege.notes}"
-              </p>
-            </div>
+          {privilege.songs && privilege.songs.length > 0 ? (
+            <ol className="space-y-2">
+              {privilege.songs.map((song, idx) => (
+                <li
+                  key={idx}
+                  className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span className="font-mono text-[var(--text-tertiary)] w-5 shrink-0">{idx + 1}.</span>
+                    <span className="font-medium break-words">{song.title}</span>
+                  </span>
+                  {song.key && (
+                    <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
+                      Tono: {song.key}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)]">
+              No se registraron canciones para este privilegio aún.
+            </p>
           )}
-        </div>
+        </section>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-end px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-page)]">
-          <Button size="sm" onClick={onClose}>
-            Cerrar Detalle
-          </Button>
-        </div>
+        {privilege.notes && (
+          <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
+            <span className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+              Notas adicionales
+            </span>
+            <p className="text-sm text-[var(--text-secondary)] italic break-words">&ldquo;{privilege.notes}&rdquo;</p>
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }

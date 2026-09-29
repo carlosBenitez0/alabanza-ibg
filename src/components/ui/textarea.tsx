@@ -54,7 +54,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             'placeholder:text-[var(--text-tertiary)]',
             'transition-all duration-150 ease-out',
             'rounded-[var(--radius-md)]',
-            'p-3 text-sm',
+            'p-3 text-base sm:text-sm',
             'focus:outline-none focus:border-[var(--text-primary)] focus:ring-1 focus:ring-[var(--text-primary)]',
             'disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-[var(--bg-surface)]',
             'read-only:cursor-default',

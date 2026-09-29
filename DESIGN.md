@@ -12,7 +12,7 @@ colors:
   border-strong: "#3d3d3d"
   text-primary: "#f5f5f5"
   text-secondary: "#9ca3af"
-  text-tertiary: "#6b7280"
+  text-tertiary: "#848b98"
   text-pure-white: "#ffffff"
   success: "#22c55e"
   warning: "#eab308"
@@ -30,6 +30,16 @@ typography:
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.6
+  body-mobile-input:
+    fontFamily: "Geist, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  caption:
+    fontFamily: "Geist, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.2
 motion:
   engine: "GSAP"
   preset: "clip-path reveal & staggered grid entry"

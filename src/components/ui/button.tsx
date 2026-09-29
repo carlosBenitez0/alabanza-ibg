@@ -3,11 +3,77 @@
 import { forwardRef, ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
+type ButtonSize = 'sm' | 'default' | 'lg' | 'xl' | 'icon' | 'icon-sm'
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
-  size?: 'sm' | 'default' | 'lg' | 'xl' | 'icon'
+  variant?: ButtonVariant
+  size?: ButtonSize
   loading?: boolean
-  iconPosition?: 'left' | 'right'
+  /** Full width on phones, auto width from `sm` up */
+  fullWidthMobile?: boolean
+}
+
+const baseStyles = [
+  'inline-flex items-center justify-center font-medium select-none',
+  'transition-all duration-150 ease-out',
+  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-page)]',
+  'disabled:pointer-events-none disabled:opacity-30 disabled:cursor-not-allowed',
+  'aria-disabled:pointer-events-none aria-disabled:opacity-30',
+  'active:scale-[0.97]',
+  'cursor-pointer touch-manipulation',
+].join(' ')
+
+const variants: Record<ButtonVariant, string> = {
+  primary: [
+    'bg-[var(--text-primary)] text-[var(--text-inverse)]',
+    'hover:bg-[var(--color-gs-12)]',
+    'shadow-none',
+  ].join(' '),
+  secondary: [
+    'bg-[var(--bg-raised)] text-[var(--text-primary)]',
+    'hover:bg-[var(--bg-hover)]',
+    'border border-[var(--border-normal)]',
+  ].join(' '),
+  outline: [
+    'bg-transparent text-[var(--text-secondary)]',
+    'border border-[var(--border-strong)]',
+    'hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+  ].join(' '),
+  ghost: [
+    'bg-transparent text-[var(--text-secondary)]',
+    'hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)]',
+  ].join(' '),
+  destructive: [
+    'bg-[var(--color-error)] text-white',
+    'hover:bg-[var(--color-error-dark)]',
+  ].join(' '),
+}
+
+// Mobile-first: every size reaches the 44px touch minimum on phones,
+// then tightens to the denser desktop scale from `sm` up.
+const sizes: Record<ButtonSize, string> = {
+  sm:        'h-11 sm:h-8 px-3 text-sm sm:text-xs gap-1.5 rounded-[var(--radius)]',
+  default:   'h-11 sm:h-9 px-4 text-sm gap-2 rounded-[var(--radius-md)]',
+  lg:        'h-12 sm:h-10 px-5 text-base sm:text-sm gap-2 rounded-[var(--radius-md)]',
+  xl:        'h-12 px-6 text-base gap-2.5 rounded-[var(--radius-lg)]',
+  icon:      'h-11 w-11 sm:h-9 sm:w-9 rounded-[var(--radius-md)]',
+  'icon-sm': 'h-11 w-11 sm:h-8 sm:w-8 rounded-[var(--radius)]',
+}
+
+/** Button classes for elements that are not <button>, e.g. next/link */
+export function buttonVariants({
+  variant = 'primary',
+  size = 'default',
+  fullWidthMobile,
+  className,
+}: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  fullWidthMobile?: boolean
+  className?: string
+} = {}) {
+  return cn(baseStyles, variants[variant], sizes[size], fullWidthMobile && 'w-full sm:w-auto', className)
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -19,58 +85,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       loading,
       disabled,
       children,
-      iconPosition = 'left',
+      fullWidthMobile,
+      type = 'button',
       ...props
     },
     ref
   ) => {
-    const baseStyles = [
-      'inline-flex items-center justify-center font-medium',
-      'transition-all duration-150 ease-out',
-      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-page)]',
-      'disabled:pointer-events-none disabled:opacity-30 disabled:cursor-not-allowed',
-      'active:scale-[0.97]',
-      'cursor-pointer',
-    ].join(' ')
-
-    const variants = {
-      primary: [
-        'bg-[var(--text-primary)] text-[var(--text-inverse)]',
-        'hover:bg-[var(--color-gs-12)]',
-        'shadow-none',
-      ].join(' '),
-      secondary: [
-        'bg-[var(--bg-raised)] text-[var(--text-primary)]',
-        'hover:bg-[var(--bg-hover)]',
-        'border border-[var(--border-normal)]',
-      ].join(' '),
-      outline: [
-        'bg-transparent text-[var(--text-secondary)]',
-        'border border-[var(--border-strong)]',
-        'hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-      ].join(' '),
-      ghost: [
-        'bg-transparent text-[var(--text-secondary)]',
-        'hover:bg-[var(--bg-raised)] hover:text-[var(--text-primary)]',
-      ].join(' '),
-      destructive: [
-        'bg-[var(--color-error)] text-white',
-        'hover:bg-[var(--color-error-dark)]',
-      ].join(' '),
-    }
-
-    const sizes = {
-      sm:      'h-8 px-3 text-xs gap-1.5 rounded-[var(--radius)]',
-      default: 'h-9 px-4 text-sm gap-2 rounded-[var(--radius-md)]',
-      lg:      'h-10 px-5 text-sm gap-2 rounded-[var(--radius-md)]',
-      xl:      'h-12 px-6 text-base gap-2.5 rounded-[var(--radius-lg)]',
-      icon:    'h-9 w-9 rounded-[var(--radius-md)]',
-    }
-
     return (
       <button
         ref={ref}
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        type={type}
+        className={buttonVariants({ variant, size, fullWidthMobile, className })}
         disabled={disabled || loading}
         aria-busy={loading}
         {...props}

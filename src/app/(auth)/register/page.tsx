@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +19,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Music,
   Check,
   X,
 } from "lucide-react";
@@ -129,14 +129,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)] px-4 py-12 text-[var(--text-primary)]">
+    <div className="min-h-dvh flex items-start sm:items-center justify-center bg-[var(--bg-page)] px-4 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] sm:py-12 text-[var(--text-primary)]">
       <div ref={cardRef} className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold">
-              <Music className="w-5 h-5" />
-            </div>
+        <div className="text-center mb-6 sm:mb-8">
+          <Link href="/" className="inline-flex items-center gap-3 mb-4 min-h-11">
+            <Image src="/ibglogo.png" alt="" width={28} height={48} priority className="h-10 w-auto" />
             <span className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
               Alabanza IBG
             </span>
@@ -144,20 +142,20 @@ export default function RegisterPage() {
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Crear Cuenta
           </h1>
-          <p className="text-xs text-[var(--text-tertiary)] mt-1">
+          <p className="text-sm text-[var(--text-tertiary)] mt-1">
             Únete a tu ministerio de alabanza
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-8 space-y-6">
+        <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-5 sm:p-8 space-y-5 sm:space-y-6">
           {error && (
             <div
               className="p-3 rounded-[var(--radius-md)] bg-[var(--color-error-dark)]/20 border border-[var(--color-error)]/30 flex items-start gap-2.5"
               role="alert"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
-              <p className="text-xs text-[var(--color-error)]">{error}</p>
+              <p className="text-sm text-[var(--color-error)]">{error}</p>
             </div>
           )}
 
@@ -203,7 +201,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+                    className="rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)]"
                     aria-label={
                       showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                     }
@@ -223,14 +221,14 @@ export default function RegisterPage() {
 
               {/* Password Requirements Live Checklist */}
               <div className="mt-2.5 p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
-                <p className="text-[11px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider mb-1">
+                <p className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider mb-1">
                   Requisitos de contraseña:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {passwordCriteria.map((c, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-1.5 text-xs"
+                      className="flex items-center gap-1.5 text-sm sm:text-xs"
                     >
                       {c.met ? (
                         <Check className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
@@ -287,11 +285,11 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <p className="pt-2 text-center text-xs text-[var(--text-tertiary)]">
+          <p className="pt-2 text-center text-sm text-[var(--text-tertiary)]">
             ¿Ya tienes cuenta?{" "}
             <Link
               href="/login"
-              className="text-[var(--text-primary)] hover:underline font-medium transition-colors"
+              className="inline-flex items-center min-h-11 px-1 text-[var(--text-primary)] underline-offset-4 hover:underline font-medium transition-colors"
             >
               Inicia sesión
             </Link>

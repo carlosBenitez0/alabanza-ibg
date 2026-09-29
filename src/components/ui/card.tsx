@@ -25,7 +25,7 @@ const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('p-5 pb-3', className)}
+      className={cn('p-4 pb-3 sm:p-5 sm:pb-3', className)}
       {...props}
     />
   )
@@ -62,7 +62,7 @@ const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('p-5 pt-0', className)}
+      className={cn('p-4 pt-0 sm:p-5 sm:pt-0', className)}
       {...props}
     />
   )
@@ -74,7 +74,7 @@ const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
     <div
       ref={ref}
       className={cn(
-        'px-5 py-4',
+        'px-4 py-3 sm:px-5 sm:py-4',
         'border-t border-[var(--border-subtle)]',
         'flex items-center',
         className

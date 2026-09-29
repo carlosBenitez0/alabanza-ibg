@@ -2,12 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useCallback } from 'react'
+import { useAsyncData } from '@/hooks/use-async-data'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { startOfWeek } from 'date-fns'
 import { formatISOShortDate, formatFullSpanishDate } from '@/lib/date-helpers'
-import { Card, CardContent, CardHeader, Badge } from '@/components/ui'
+import { Card, CardContent, CardHeader, Badge, PageHeader, PageLoader, EmptyState } from '@/components/ui'
 import { User, Music, Mic, Users as UsersIcon, Guitar } from 'lucide-react'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey, WeeklyPrivilege } from '@/types/privileges'
 import { cn } from '@/lib/utils'
@@ -26,72 +27,36 @@ export default function UsersDirectoryPage() {
   const { user } = useAuth()
   const supabase = useSupabase()
   
-  const [users, setUsers] = useState<UserWithPrivileges[]>([])
-  const [loading, setLoading] = useState(true)
-  const [weekLabel, setWeekLabel] = useState('')
+  const loadDirectory = useCallback(async () => {
+    // This week's weekend (Saturday and Sunday)
+    const monday = startOfWeek(new Date(), { weekStartsOn: 1 })
+    const satDate = new Date(monday)
+    satDate.setDate(monday.getDate() + 5)
+    const sunDate = new Date(monday)
+    sunDate.setDate(monday.getDate() + 6)
+    const upcomingDates = [formatISOShortDate(satDate), formatISOShortDate(sunDate)]
+    const weekLabel = `${formatFullSpanishDate(satDate)} - ${formatFullSpanishDate(sunDate)}`
 
-  useEffect(() => {
-    if (user) {
-      fetchUsersAndPrivileges()
-    }
-  }, [user])
+    const [profilesRes, privRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, role').order('full_name'),
+      supabase.from('weekly_privileges').select('*').in('assigned_date', upcomingDates),
+    ])
 
-  const fetchUsersAndPrivileges = async () => {
-    try {
-      setLoading(true)
+    const usersMap: Record<string, UserWithPrivileges> = {}
+    for (const p of profilesRes.data || []) usersMap[p.id] = { ...p, privileges: [] }
+    for (const priv of privRes.data || []) usersMap[priv.profile_id]?.privileges.push(priv as WeeklyPrivilege)
 
-      // Calculate the current week's weekend dates (Saturday and Sunday)
-      const now = new Date()
-      const monday = startOfWeek(now, { weekStartsOn: 1 })
-      
-      const satDate = new Date(monday)
-      satDate.setDate(monday.getDate() + 5)
-      
-      const sunDate = new Date(monday)
-      sunDate.setDate(monday.getDate() + 6)
-      
-      const upcomingDates = [formatISOShortDate(satDate), formatISOShortDate(sunDate)]
-      setWeekLabel(`${formatFullSpanishDate(satDate)} - ${formatFullSpanishDate(sunDate)}`)
+    // Members with privileges first, then alphabetical
+    const users = Object.values(usersMap).sort((a, b) => {
+      if (a.privileges.length > 0 && b.privileges.length === 0) return -1
+      if (a.privileges.length === 0 && b.privileges.length > 0) return 1
+      return (a.full_name || '').localeCompare(b.full_name || '')
+    })
+    return { users, weekLabel }
+  }, [supabase])
 
-      // Fetch profiles and this week's privileges concurrently
-      const [profilesRes, privRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, role').order('full_name'),
-        supabase.from('weekly_privileges').select('*').in('assigned_date', upcomingDates)
-      ])
-
-      const profilesData = profilesRes.data || []
-      const privilegesData = privRes.data || []
-
-      // Map privileges to users
-      const usersMap: Record<string, UserWithPrivileges> = {}
-      
-      profilesData.forEach(p => {
-        usersMap[p.id] = {
-          ...p,
-          privileges: []
-        }
-      })
-
-      privilegesData.forEach(priv => {
-        if (usersMap[priv.profile_id]) {
-          usersMap[priv.profile_id].privileges.push(priv as WeeklyPrivilege)
-        }
-      })
-
-      // Convert to array and sort (those with privileges first, then alphabetical)
-      const usersList = Object.values(usersMap).sort((a, b) => {
-        if (a.privileges.length > 0 && b.privileges.length === 0) return -1
-        if (a.privileges.length === 0 && b.privileges.length > 0) return 1
-        return (a.full_name || '').localeCompare(b.full_name || '')
-      })
-
-      setUsers(usersList)
-    } catch (error) {
-      console.error('Error fetching directory:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data, loading } = useAsyncData(user ? loadDirectory : null, { users: [] as UserWithPrivileges[], weekLabel: '' })
+  const { users, weekLabel } = data
 
   const getPrivilegeDef = (key: PrivilegeKey) => {
     return PRIVILEGE_DEFINITIONS.find(p => p.key === key)
@@ -107,35 +72,24 @@ export default function UsersDirectoryPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="relative w-8 h-8">
-          <div className="absolute inset-0 border-3 border-[var(--border-strong)] rounded-full" />
-          <div className="absolute inset-0 border-3 border-[var(--text-primary)] rounded-full animate-spin border-t-transparent" />
-        </div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
-          Equipo y Privilegios
-        </h1>
-        <p className="text-sm text-[var(--text-tertiary)] mt-1">
-          Directorio del equipo y sus asignaciones para el fin de semana del {weekLabel}.
-        </p>
-      </div>
+    <div className="space-y-5 sm:space-y-6 animate-fade-in">
+      <PageHeader
+        title="Equipo y Privilegios"
+        description={`Directorio del equipo y sus asignaciones para el fin de semana: ${weekLabel}.`}
+      />
 
       {users.length === 0 ? (
-        <div className="text-center py-12 border border-[var(--border-subtle)] rounded-[var(--radius-xl)] bg-[var(--bg-surface)]">
-          <UsersIcon className="w-12 h-12 mx-auto text-[var(--text-tertiary)] mb-4 opacity-50" />
-          <h3 className="text-lg font-medium text-[var(--text-primary)]">No hay usuarios registrados</h3>
-          <p className="text-[var(--text-tertiary)]">Aún no hay miembros en la plataforma.</p>
-        </div>
+        <EmptyState
+          icon={<UsersIcon />}
+          title="No hay usuarios registrados"
+          description="Aún no hay miembros en la plataforma."
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {users.map(u => {
             const hasPrivileges = u.privileges.length > 0
 
@@ -146,7 +100,7 @@ export default function UsersDirectoryPage() {
                   ? "bg-[var(--bg-raised)] border-[var(--border-strong)]" 
                   : "bg-[var(--bg-surface)] border-[var(--border-subtle)] opacity-80"
               )}>
-                <CardHeader className="p-4 pb-2 flex flex-row items-center gap-3">
+                <CardHeader className="p-4 pb-2 sm:p-4 sm:pb-2 flex flex-row items-center gap-3">
                   <div className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0",
                     hasPrivileges 
@@ -165,16 +119,16 @@ export default function UsersDirectoryPage() {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="p-4 pt-2">
+                <CardContent className="p-4 pt-2 sm:p-4 sm:pt-2">
                   <div className="pt-3 border-t border-[var(--border-subtle)]">
                     {!hasPrivileges ? (
                       <div className="flex items-center gap-2 text-[var(--text-tertiary)]">
                         <div className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)]" />
-                        <span className="text-xs">Sin privilegios esta semana</span>
+                        <span className="text-sm sm:text-xs">Sin privilegios esta semana</span>
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider">
+                        <p className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider">
                           Privilegios Asignados:
                         </p>
                         <div className="flex flex-col gap-1.5">
@@ -183,17 +137,17 @@ export default function UsersDirectoryPage() {
                             return (
                               <div 
                                 key={priv.id}
-                                className="flex items-center justify-between p-2 rounded bg-[var(--bg-active)] border border-[var(--border-normal)]"
+                                className="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg-active)] border border-[var(--border-normal)]"
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[var(--text-secondary)]">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-[var(--text-secondary)] shrink-0">
                                     {getIcon(def?.iconName)}
                                   </span>
-                                  <span className="text-xs font-medium text-[var(--text-primary)]">
+                                  <span className="text-sm sm:text-xs font-medium text-[var(--text-primary)] truncate">
                                     {def?.title || priv.privilege_key}
                                   </span>
                                 </div>
-                                <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} className="text-[9px] px-1.5 py-0">
+                                <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} size="sm">
                                   {def?.dayLabel || priv.assigned_date}
                                 </Badge>
                               </div>

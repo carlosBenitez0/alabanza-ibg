@@ -71,13 +71,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               'placeholder:text-[var(--text-tertiary)]',
               'transition-all duration-150 ease-out',
               'rounded-[var(--radius-md)]',
-              'h-10 px-3 text-sm',
+              'h-11 sm:h-10 px-3 text-base sm:text-sm',
               'focus:outline-none focus:border-[var(--text-primary)] focus:ring-1 focus:ring-[var(--text-primary)]',
               'disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-[var(--bg-surface)]',
               'read-only:cursor-default',
               error && 'border-[var(--color-error)] focus:ring-[var(--color-error)] focus:border-[var(--color-error)]',
               leadingIcon && 'pl-9',
-              (trailingIcon || trailingAction) && 'pr-9',
+              trailingIcon && !trailingAction && 'pr-9',
+              trailingAction && 'pr-12 sm:pr-10',
               className
             )}
             {...props}
@@ -91,7 +92,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           {trailingAction && (
-            <div className="absolute right-3 flex items-center justify-center text-[var(--text-tertiary)] z-10">
+            <div className="absolute right-0 sm:right-1 flex items-center justify-center text-[var(--text-tertiary)] z-10 [&>button]:min-h-11 [&>button]:min-w-11 sm:[&>button]:min-h-8 sm:[&>button]:min-w-8 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
               {trailingAction}
             </div>
           )}

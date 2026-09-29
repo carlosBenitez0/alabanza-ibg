@@ -64,7 +64,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
               'text-[var(--text-primary)]',
               'transition-all duration-150 ease-out',
               'rounded-[var(--radius-md)]',
-              'py-2 pl-3 pr-10 text-sm',
+              'h-11 sm:h-10 pl-3 pr-10 text-base sm:text-sm',
               'appearance-none',
               'focus:outline-none focus:border-[var(--text-primary)] focus:ring-1 focus:ring-[var(--text-primary)]',
               'disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-[var(--bg-surface)]',

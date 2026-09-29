@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
@@ -23,16 +23,17 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const toast = ({ title, description, variant = 'default', action }: Omit<Toast, 'id'>) => {
+  const dismiss = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  const toast = useCallback(({ title, description, variant = 'default', action }: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2)
-    setToasts((prev) => [...prev, { id, title, description, variant, action }])
+    // Keep at most 3 on screen so a burst never covers the page on phones
+    setToasts((prev) => [...prev.slice(-2), { id, title, description, variant, action }])
     setTimeout(() => dismiss(id), 5000)
     return id
-  }
-
-  const dismiss = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }
+  }, [dismiss])
 
   return (
     <ToastContext.Provider value={{ toasts, toast, dismiss }}>
@@ -53,7 +54,13 @@ export function useToast() {
 function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
   return (
     <div
-      className="fixed bottom-4 right-4 z-[800] flex flex-col gap-2 pointer-events-none"
+      className={cn(
+        'fixed z-[800] flex flex-col gap-2 pointer-events-none',
+        // Phones: full width, above the bottom nav and home indicator
+        'inset-x-3 bottom-[calc(var(--bottom-nav-h)+var(--safe-bottom)+0.75rem)]',
+        // Desktop: bottom-right stack
+        'lg:inset-x-auto lg:right-4 lg:bottom-4 lg:w-96'
+      )}
       aria-live="polite"
       aria-label="Notificaciones"
     >
@@ -66,17 +73,17 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const variantStyles = {
-    default: 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800',
-    destructive: 'bg-white dark:bg-neutral-900 border-error/30',
-    success: 'bg-white dark:bg-neutral-900 border-success/30',
-    warning: 'bg-white dark:bg-neutral-900 border-warning/30',
+    default: 'border-[var(--border-strong)]',
+    destructive: 'border-[var(--color-error)]/40',
+    success: 'border-[var(--color-success)]/40',
+    warning: 'border-[var(--color-warning)]/40',
   }
 
   const iconStyles = {
-    default: 'text-brand-500',
-    destructive: 'text-error',
-    success: 'text-success',
-    warning: 'text-warning',
+    default: 'text-[var(--text-secondary)]',
+    destructive: 'text-[var(--color-error)]',
+    success: 'text-[var(--color-success)]',
+    warning: 'text-[var(--color-warning)]',
   }
 
   const icons = {
@@ -105,19 +112,19 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   return (
     <div
       className={cn(
-        'flex items-start gap-3 p-4 rounded-xl border shadow-lg min-w-[300px] max-w-md pointer-events-auto',
+        'flex items-start gap-3 p-3 sm:p-4 w-full rounded-[var(--radius-lg)] border bg-[var(--bg-raised)] shadow-[var(--shadow-modal)] pointer-events-auto',
         'animate-slide-in',
         variantStyles[toast.variant || 'default']
       )}
-      role="alert"
+      role={toast.variant === 'destructive' ? 'alert' : 'status'}
     >
-      <div className={cn('flex-shrink-0', iconStyles[toast.variant || 'default'])}>
+      <div className={cn('flex-shrink-0 mt-px', iconStyles[toast.variant || 'default'])}>
         {icons[toast.variant || 'default']}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-neutral-900 dark:text-neutral-100">{toast.title}</p>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{toast.title}</p>
         {toast.description && (
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{toast.description}</p>
+          <p className="mt-0.5 text-sm text-[var(--text-secondary)] break-words">{toast.description}</p>
         )}
         {toast.action && (
           <div className="mt-3">{toast.action}</div>
@@ -125,7 +132,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       </div>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="flex-shrink-0 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-1"
+        className="flex-shrink-0 -m-2 touch-target sm:min-h-8 sm:min-w-8 flex items-center justify-center rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
         aria-label="Cerrar notificación"
       >
         <X className="h-5 w-5" />

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useAsyncData } from '@/hooks/use-async-data'
 import { useSupabase } from '@/hooks/use-supabase'
 import { CatalogSong, PrivilegeSongItem } from '@/types/privileges'
 import { getLocalSongs, mergeSongs } from '@/lib/song-storage'
 import { Search, Plus, Music, Loader2, Music2 } from 'lucide-react'
-import { Input, Button, Badge } from '@/components/ui'
-import { cn } from '@/lib/utils'
+import { Input, Badge } from '@/components/ui'
 
 interface SongAutocompleteProps {
   onAddSong: (song: PrivilegeSongItem) => void
@@ -45,43 +45,34 @@ export const ALL_MUSIC_KEYS = [
 export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps) {
   const supabase = useSupabase()
   const [query, setQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<CatalogSong[]>([])
-  const [loading, setLoading] = useState(false)
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [creating, setCreating] = useState(false)
   const [selectedKey, setSelectedKey] = useState('C')
   const [isExpanded, setIsExpanded] = useState(true)
 
+  // Debounce catalog lookups so typing on a phone does not fire a request per key
   useEffect(() => {
-    fetchCatalogSongs(query)
+    const handle = setTimeout(() => setDebouncedQuery(query.trim()), 250)
+    return () => clearTimeout(handle)
   }, [query])
 
-  const fetchCatalogSongs = async (searchQuery: string) => {
-    setLoading(true)
+  const fetchCatalogSongs = useCallback(async (): Promise<CatalogSong[]> => {
+    const term = debouncedQuery.toLowerCase()
     const localAll = getLocalSongs()
-    const localMatches = searchQuery.trim()
-      ? localAll.filter(s => s.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-      : localAll
-
+    const localMatches = term ? localAll.filter((s) => s.title.toLowerCase().includes(term)) : localAll
     try {
       let queryBuilder = supabase.from('songs').select('*').limit(15)
-      if (searchQuery.trim()) {
-        queryBuilder = queryBuilder.ilike('title', `%${searchQuery.trim()}%`)
-      }
-
+      if (debouncedQuery) queryBuilder = queryBuilder.ilike('title', `%${debouncedQuery}%`)
       const { data, error } = await queryBuilder
-
-      if (error || !data) {
-        setSuggestions(localMatches)
-        return
-      }
-
-      const merged = mergeSongs(data, localMatches)
-      setSuggestions(merged)
+      if (error || !data) return localMatches
+      return mergeSongs(data, localMatches)
     } catch {
-      setSuggestions(localMatches)
-    } finally {
-      setLoading(false)
+      return localMatches
     }
-  }
+  }, [supabase, debouncedQuery])
+
+  const { data: suggestions, loading: searching } = useAsyncData<CatalogSong[]>(fetchCatalogSongs, [])
+  const loading = creating || searching || query.trim() !== debouncedQuery
 
   const handleSelectExisting = (song: CatalogSong) => {
     onAddSong({
@@ -96,7 +87,7 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
     if (!query.trim()) return
 
     const newTitle = query.trim()
-    setLoading(true)
+    setCreating(true)
 
     try {
       const { data } = await supabase
@@ -116,7 +107,7 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
         key: selectedKey,
       })
     } finally {
-      setLoading(false)
+      setCreating(false)
       setQuery('')
     }
   }
@@ -132,10 +123,13 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
 
   return (
     <div className="w-full space-y-3">
-      {/* Search Input + Key Selector */}
+      {/* Search input + key for new songs */}
       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
         <div className="relative flex-1">
           <Input
+            type="search"
+            enterKeyHint="search"
+            aria-label="Buscar alabanza en el catálogo"
             placeholder="Buscar o escribir nombre de la alabanza..."
             value={query}
             onChange={(e) => {
@@ -145,20 +139,19 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
             onFocus={() => setIsExpanded(true)}
             leadingIcon={<Search className="w-4 h-4 text-[var(--text-tertiary)]" />}
             disabled={disabled}
-            trailingAction={
-              loading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" /> : null
+            trailingIcon={
+              loading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" /> : undefined
             }
           />
         </div>
 
-        {/* Tone/Key Selector for New Songs */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-[10px] font-mono text-[var(--text-tertiary)] uppercase whitespace-nowrap">Tono:</span>
+        <label className="flex items-center gap-2 shrink-0">
+          <span className="text-caption font-mono text-[var(--text-tertiary)] uppercase whitespace-nowrap">Tono nuevo</span>
           <select
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
             disabled={disabled}
-            className="bg-[var(--bg-surface)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-xs py-2 px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
+            className="flex-1 sm:flex-none h-11 sm:h-10 bg-[var(--bg-surface)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-base sm:text-xs px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
           >
             <optgroup label="Tonos Mayores">
               {ALL_MUSIC_KEYS.slice(0, 12).map((k) => (
@@ -175,74 +168,73 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
               ))}
             </optgroup>
           </select>
-        </div>
+        </label>
       </div>
 
-      {/* Catalog Selector Panel (Integrated Inline for perfect visibility) */}
+      {/* Catalog results */}
       {isExpanded && (
-        <div className="rounded-[var(--radius-md)] border border-[var(--border-normal)] bg-[var(--bg-surface)] overflow-hidden space-y-0">
-          <div className="px-3 py-2 bg-[var(--bg-raised)] border-b border-[var(--border-subtle)] flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] flex items-center gap-1.5">
-              <Music2 className="w-3.5 h-3.5" />
-              Alabanzas en el Catálogo ({suggestions.length})
+        <div className="rounded-[var(--radius-md)] border border-[var(--border-normal)] bg-[var(--bg-surface)] overflow-hidden">
+          <div className="px-3 py-2 bg-[var(--bg-raised)] border-b border-[var(--border-subtle)] flex items-center justify-between gap-2">
+            <span className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)] flex items-center gap-1.5">
+              <Music2 className="w-3.5 h-3.5" aria-hidden="true" />
+              Catálogo ({suggestions.length})
             </span>
-            <span className="text-[10px] font-sans text-[var(--text-tertiary)]">Haz clic para añadir</span>
+            <span className="text-caption text-[var(--text-tertiary)]">Toca para añadir</span>
           </div>
 
-          <div className="max-h-48 overflow-y-auto divide-y divide-[var(--border-subtle)]">
-            {/* Create New Option if query typed and no exact match */}
+          <ul className="max-h-[40dvh] sm:max-h-56 overflow-y-auto overscroll-contain divide-y divide-[var(--border-subtle)]">
             {query.trim().length > 0 && !hasExactMatch && (
-              <button
-                type="button"
-                onClick={handleCreateNewSong}
-                className="w-full text-left p-2.5 hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-between text-xs text-[var(--text-primary)] font-medium group bg-[var(--bg-active)]/40"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold">
-                    <Plus className="w-3 h-3" />
-                  </div>
-                  <span>
-                    Agregar y crear <strong className="text-[var(--color-gs-12)] font-semibold">"{query.trim()}"</strong> al catálogo
+              <li>
+                <button
+                  type="button"
+                  onClick={handleCreateNewSong}
+                  disabled={disabled || creating}
+                  className="w-full min-h-12 text-left px-3 py-2.5 hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-2 text-sm font-medium bg-[var(--bg-active)]/40 disabled:opacity-50"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-6 h-6 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center shrink-0">
+                      <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 break-words">
+                      Crear <strong className="text-[var(--color-gs-12)] font-semibold">&ldquo;{query.trim()}&rdquo;</strong>
+                    </span>
                   </span>
-                </div>
-                <Badge variant="brand" size="sm">Tono: {selectedKey}</Badge>
-              </button>
+                  <Badge variant="brand" size="sm">{selectedKey}</Badge>
+                </button>
+              </li>
             )}
 
-            {/* Catalog Song Matches */}
             {suggestions.length === 0 && !query.trim() ? (
-              <div className="p-4 text-center text-xs text-[var(--text-tertiary)] font-sans">
+              <li className="p-4 text-center text-sm text-[var(--text-tertiary)]">
                 No hay alabanzas registradas aún en el catálogo. Escribe el nombre para proponer la primera.
-              </div>
+              </li>
             ) : (
               suggestions.map((song) => (
-                <div
-                  key={song.id || song.title}
-                  className="p-2.5 hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-2 text-xs"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Music className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-                    <span className="font-medium text-[var(--text-primary)] truncate">{song.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                      {getKeyLabel(song.default_key || selectedKey)}
+                <li key={song.id || song.title}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectExisting(song)}
+                    disabled={disabled}
+                    className="w-full min-h-12 px-3 py-2 text-left hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-2 text-sm disabled:opacity-50"
+                    aria-label={`Añadir ${song.title}`}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Music className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                      <span className="font-medium text-[var(--text-primary)] truncate">{song.title}</span>
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-[10px] h-6 px-2"
-                      onClick={() => handleSelectExisting(song)}
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Añadir
-                    </Button>
-                  </div>
-                </div>
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                        {getKeyLabel(song.default_key || selectedKey)}
+                      </span>
+                      <span className="w-8 h-8 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-secondary)]">
+                        <Plus className="w-4 h-4" aria-hidden="true" />
+                      </span>
+                    </span>
+                  </button>
+                </li>
               ))
             )}
-          </div>
+          </ul>
         </div>
       )}
     </div>

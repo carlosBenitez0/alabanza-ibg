@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
+/* The app is dark-only: `dark:` follows the .dark class on <html>, never the OS setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-geist-sans);
+
+  /* Smallest text step (tab labels, counters, mono captions). Nothing informative goes below it. */
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1rem;
 
   /* ─── Grayscale Scale ─── */
   --color-gs-0:  #0a0a0a;
@@ -94,7 +101,7 @@
 
   --text-primary:   #f5f5f5;
   --text-secondary: #9ca3af;
-  --text-tertiary:  #6b7280;
+  --text-tertiary:  #848b98; /* ≥4.5:1 on every surface, incl. #242424 hover */
   --text-disabled:  #3d3d3d;
   --text-inverse:   #0a0a0a;
 
@@ -102,6 +109,17 @@
 
   --shadow-card:  none;
   --shadow-modal: 0 25px 60px rgb(0 0 0 / 0.7);
+
+  /* Device safe areas (notch, home indicator) */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+
+  /* App chrome */
+  --header-h:     3.5rem;
+  --bottom-nav-h: 4rem;
+  --touch-min:    2.75rem;
 }
 
 /* ─────────────────────────────────────────
@@ -114,7 +132,9 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -127,6 +147,17 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+a,
+label,
+summary {
+  touch-action: manipulation;
 }
 
 /* ─────────────────────────────────────────
@@ -185,6 +216,16 @@ a {
   to   { opacity: 1; transform: scale(1); }
 }
 
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -193,6 +234,8 @@ a {
 .animate-fade-in   { animation: fade-in   var(--transition) ease-out; }
 .animate-slide-up  { animation: slide-up  var(--transition) ease-out; }
 .animate-scale-in  { animation: scale-in  var(--transition) ease-out; }
+.animate-slide-in  { animation: slide-in  var(--transition) ease-out; }
+.animate-sheet-up  { animation: sheet-up  var(--transition-slow) cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-shimmer   { animation: shimmer 2s infinite; background-size: 200% 100%; }
 
 /* ─────────────────────────────────────────
@@ -242,6 +285,34 @@ a {
 }
 @media (min-width: 640px)  { .container { padding: 0 1.5rem; } }
 @media (min-width: 1024px) { .container { padding: 0 2rem; } }
+
+/* ─────────────────────────────────────────
+   MOBILE / SAFE AREA UTILITIES
+───────────────────────────────────────── */
+.pt-safe { padding-top: var(--safe-top); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.pl-safe { padding-left: var(--safe-left); }
+.pr-safe { padding-right: var(--safe-right); }
+
+.touch-target {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
+/* Horizontal scrollers (chip rows, toolbars) without a visible bar */
+.scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-x::-webkit-scrollbar { display: none; }
+
+/* Keep focused fields clear of the sticky header and bottom nav */
+input, select, textarea {
+  scroll-margin-top: calc(var(--header-h) + var(--safe-top) + 1rem);
+  scroll-margin-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem);
+}
 
 /* ─────────────────────────────────────────
    GSAP REVEAL BASE

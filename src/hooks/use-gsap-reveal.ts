@@ -22,6 +22,15 @@ export interface GsapRevealOptions {
   immediate?: boolean
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/** Phones get shorter travel and tighter stagger so lists don't feel sluggish */
+function isCompactViewport() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+}
+
 function getFromVars(from: GsapRevealFrom, yOffset: number): gsap.TweenVars {
   switch (from) {
     case 'bottom':
@@ -76,7 +85,11 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
 
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || prefersReducedMotion()) return
+
+    const compact = isCompactViewport()
+    const effStagger = compact ? Math.min(stagger, 0.04) : stagger
+    const effOffset = compact ? Math.min(yOffset, 12) : yOffset
 
     const ctx = gsap.context(() => {
       const targets = selector
@@ -85,7 +98,7 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
 
       if (!targets.length) return
 
-      const fromVars = getFromVars(from, yOffset)
+      const fromVars = getFromVars(from, effOffset)
       const toVars = getToVars(from)
 
       const animate = () => {
@@ -93,7 +106,7 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
           ...toVars,
           duration,
           delay,
-          stagger,
+          stagger: effStagger,
           ease: 'power3.out',
           clearProps: 'clip-path',
         })
@@ -107,6 +120,8 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
       // Set initial hidden state
       gsap.set(targets, fromVars)
 
+      // threshold 0: containers taller than the screen (long lists on phones)
+      // must still reveal as soon as any part of them is visible
       const observer = new IntersectionObserver(
         (entries) => {
           if (entries[0].isIntersecting) {
@@ -114,7 +129,7 @@ export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
             observer.disconnect()
           }
         },
-        { threshold: 0.1 }
+        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
       )
       observer.observe(el)
 
@@ -142,7 +157,7 @@ export function useGsapMountReveal<T extends HTMLElement = HTMLDivElement>(
 
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || prefersReducedMotion()) return
 
     const ctx = gsap.context(() => {
       gsap.fromTo(

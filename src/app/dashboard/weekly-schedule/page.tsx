@@ -2,221 +2,186 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
+import { useAsyncData } from '@/hooks/use-async-data'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { useSupabase } from '@/hooks/use-supabase'
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
 import { getWeekBounds, formatFullSpanishDate, formatISOShortDate, getNextWeekDate, getPrevWeekDate } from '@/lib/date-helpers'
-import { getLocalPrivileges, mergePrivileges } from '@/lib/privilege-storage'
+import { fetchPrivileges } from '@/lib/privilege-storage'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@/components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, SegmentedControl, Fab } from '@/components/ui'
 import { Calendar, Guitar, Mic, Users, Music, Plus, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'
-import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
+import { useGsapMountReveal } from '@/hooks/use-gsap-reveal'
+import { cn } from '@/lib/utils'
+
+type ServiceDay = 'saturday' | 'sunday'
+
+// Default to next week on Sunday, since this week's Saturday is already past
+function getInitialWeeklyDate() {
+  const today = new Date()
+  return today.getDay() === 0 ? getNextWeekDate(today) : today
+}
+
+function formatWeekRange(date: Date) {
+  const { start, end } = getWeekBounds(date)
+  const sameMonth = start.getMonth() === end.getMonth()
+  return sameMonth
+    ? `${format(start, 'd', { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
+    : `${format(start, "d 'de' MMM", { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
+}
 
 export default function WeeklySchedulePage() {
   const supabase = useSupabase()
-  // Default to next week if today is Sunday, since Saturday of this week is in the past
-  const getInitialWeeklyDate = () => {
-    const today = new Date()
-    if (today.getDay() === 0) { // 0 is Sunday
-      return getNextWeekDate(today)
-    }
-    return today
-  }
 
-  const [currentWeekDate, setCurrentWeekDate] = useState(getInitialWeeklyDate())
-  const [privileges, setPrivileges] = useState<WeeklyPrivilege[]>([])
-  const [loading, setLoading] = useState(true)
+  const [currentWeekDate, setCurrentWeekDate] = useState(getInitialWeeklyDate)
+  // Saturday is always the next service in the displayed week (Sundays jump to next week)
+  const [mobileDay, setMobileDay] = useState<ServiceDay>('saturday')
 
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activePrivilegeKey, setActivePrivilegeKey] = useState<PrivilegeKey>('saturday_musician')
-  const [allowedDay, setAllowedDay] = useState<'saturday' | 'sunday' | undefined>(undefined)
+  const [allowedDay, setAllowedDay] = useState<ServiceDay | undefined>(undefined)
 
   const headerRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.5 })
-  const gridRef = useGsapReveal<HTMLDivElement>({ selector: '.matrix-column', stagger: 0.1 })
 
-  const { start, end } = getWeekBounds(currentWeekDate)
-  const startDateStr = formatISOShortDate(start)
-  const endDateStr = formatISOShortDate(end)
+  const startDateStr = formatISOShortDate(getWeekBounds(currentWeekDate).start)
+  const endDateStr = formatISOShortDate(getWeekBounds(currentWeekDate).end)
+  const weekLabel = formatWeekRange(currentWeekDate)
 
-  useEffect(() => {
-    fetchWeeklyPrivileges()
-  }, [currentWeekDate])
+  const fetchWeek = useCallback(
+    () => fetchPrivileges(supabase, { from: startDateStr, to: endDateStr }),
+    [supabase, startDateStr, endDateStr]
+  )
+  const { data: privileges, loading, reload } = useAsyncData<WeeklyPrivilege[]>(fetchWeek, [])
 
-  const fetchWeeklyPrivileges = async () => {
-    try {
-      setLoading(true)
-      const { data } = await supabase
-        .from('weekly_privileges')
-        .select(`
-          id,
-          profile_id,
-          privilege_key,
-          assigned_date,
-          songs,
-          notes,
-          created_at,
-          profile:profiles (
-            full_name
-          )
-        `)
-        .gte('assigned_date', startDateStr)
-        .lte('assigned_date', endDateStr)
-
-      const mapped = (data || []).map((item) => {
-        const profileObj = Array.isArray(item.profile) ? item.profile[0] : item.profile
-        return {
-          id: item.id,
-          profile_id: item.profile_id,
-          profile_name: profileObj?.full_name || 'Miembro',
-          privilege_key: item.privilege_key as PrivilegeKey,
-          assigned_date: item.assigned_date,
-          songs: item.songs || [],
-          notes: item.notes,
-          created_at: item.created_at,
-        } as WeeklyPrivilege
-      })
-
-      const localData = getLocalPrivileges().filter(
-        p => p.assigned_date >= startDateStr && p.assigned_date <= endDateStr
-      )
-      const merged = mergePrivileges(mapped, localData)
-      setPrivileges(merged)
-    } catch {
-      const localData = getLocalPrivileges().filter(
-        p => p.assigned_date >= startDateStr && p.assigned_date <= endDateStr
-      )
-      setPrivileges(localData)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleOpenModal = (key: PrivilegeKey = 'saturday_musician', day?: 'saturday' | 'sunday') => {
+  const handleOpenModal = (key: PrivilegeKey = 'saturday_musician', day?: ServiceDay) => {
     setActivePrivilegeKey(key)
     setAllowedDay(day)
     setIsModalOpen(true)
   }
 
-  const getPrivilegesByKey = (key: PrivilegeKey) => {
-    return privileges.filter(p => p.privilege_key === key)
-  }
+  const getPrivilegesByKey = (key: PrivilegeKey) => privileges.filter((p) => p.privilege_key === key)
 
-  const saturdayPrivileges = PRIVILEGE_DEFINITIONS.filter(p => p.day === 'saturday')
-  const sundayPrivileges = PRIVILEGE_DEFINITIONS.filter(p => p.day === 'sunday')
+  const columns: { day: ServiceDay; title: string; badge: string; badgeVariant: 'brand' | 'secondary' }[] = [
+    { day: 'saturday', title: 'Sábado', badge: 'Culto de Sábado', badgeVariant: 'brand' },
+    { day: 'sunday', title: 'Domingo', badge: 'Servicio Dominical', badgeVariant: 'secondary' },
+  ]
+
+  const countFor = (day: ServiceDay) =>
+    privileges.filter((p) => PRIVILEGE_DEFINITIONS.find((d) => d.key === p.privilege_key)?.day === day).length
 
   return (
-    <div className="space-y-8 text-[var(--text-primary)]">
-      {/* Modal */}
+    <div className="space-y-5 sm:space-y-8 text-[var(--text-primary)]">
       <RegisterPrivilegeModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         defaultPrivilegeKey={activePrivilegeKey}
         targetDate={currentWeekDate}
         allowedDay={allowedDay}
-        onSuccess={fetchWeeklyPrivileges}
+        onSuccess={reload}
       />
 
-      {/* Header */}
-      <div ref={headerRef} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            Tabla Semanal de Privilegios
-          </h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1 font-sans">
-            Matriz pública de la congregación para Sábado y Domingo.
-          </p>
-        </div>
+      <PageHeader
+        ref={headerRef}
+        title="Tabla Semanal de Privilegios"
+        description="Matriz pública de la congregación para Sábado y Domingo."
+        actions={
+          <>
+            <div className="flex items-center justify-between gap-1 bg-[var(--bg-raised)] border border-[var(--border-normal)] rounded-[var(--radius-md)] p-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setCurrentWeekDate(getPrevWeekDate(currentWeekDate))}
+                aria-label="Semana anterior"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+              </Button>
+              <span className="text-sm sm:text-xs font-mono px-2 text-[var(--text-secondary)] text-center whitespace-nowrap" aria-live="polite">
+                {weekLabel}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setCurrentWeekDate(getNextWeekDate(currentWeekDate))}
+                aria-label="Semana siguiente"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
+              </Button>
+            </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Week Selector Controls */}
-          <div className="flex items-center gap-1.5 bg-[var(--bg-raised)] border border-[var(--border-normal)] rounded-[var(--radius-md)] p-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setCurrentWeekDate(getPrevWeekDate(currentWeekDate))}
-              aria-label="Semana anterior"
-            >
-              <ChevronLeft className="w-4 h-4" />
+            <Button className="hidden lg:inline-flex" onClick={() => handleOpenModal('saturday_musician')}>
+              <Plus className="w-4 h-4" />
+              Registrar Mi Privilegio
             </Button>
-            <span className="text-xs font-mono px-2 text-[var(--text-secondary)]">
-              {formatISOShortDate(start)} al {formatISOShortDate(end)}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setCurrentWeekDate(getNextWeekDate(currentWeekDate))}
-              aria-label="Semana siguiente"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+          </>
+        }
+      />
 
-          <Button size="default" onClick={() => handleOpenModal('saturday_musician')}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Registrar Mi Privilegio
-          </Button>
-        </div>
+      <Fab icon={<Plus />} label="Registrarme" onClick={() => handleOpenModal(mobileDay === 'saturday' ? 'saturday_musician' : 'sunday_lead_vocal', mobileDay)} />
+
+      {/* Phones/tablets: one day at a time */}
+      <div className="lg:hidden sticky top-[calc(var(--header-h)+var(--safe-top))] z-[150] -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
+        <SegmentedControl
+          label="Día del servicio"
+          value={mobileDay}
+          onChange={setMobileDay}
+          options={columns.map((c) => ({
+            value: c.day,
+            label: (
+              <>
+                {c.title}
+                <span className="font-mono opacity-70">({countFor(c.day)})</span>
+              </>
+            ),
+          }))}
+        />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="relative w-8 h-8">
-            <div className="absolute inset-0 border-2 border-[var(--border-strong)] rounded-full" />
-            <div className="absolute inset-0 border-2 border-[var(--text-primary)] rounded-full animate-spin border-t-transparent" />
-          </div>
-        </div>
+        <PageLoader />
       ) : (
-        <div ref={gridRef} className="grid gap-8 lg:grid-cols-2">
-          {/* SATURDAY COLUMN */}
-          <div className="matrix-column space-y-6">
-            <div className="flex items-center justify-between border-b border-[var(--border-strong)] pb-3">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-[var(--text-secondary)]" />
-                Sábado
-              </h2>
-              <Badge variant="brand" size="sm">Culto de Sábado</Badge>
-            </div>
+        <div className="grid gap-8 lg:grid-cols-2">
+          {columns.map((col) => (
+            <section
+              key={col.day}
+              aria-labelledby={`col-${col.day}`}
+              className={cn('space-y-4 sm:space-y-6 min-w-0', mobileDay !== col.day && 'hidden lg:block')}
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-[var(--border-strong)] pb-3">
+                <h2 id={`col-${col.day}`} className="text-xl font-bold flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[var(--text-secondary)]" aria-hidden="true" />
+                  {col.title}
+                </h2>
+                <Badge variant={col.badgeVariant} size="sm">{col.badge}</Badge>
+              </div>
 
-            <div className="space-y-4">
-              {saturdayPrivileges.map((def) => (
-                <PrivilegeMatrixSlot
-                  key={def.key}
-                  definition={def}
-                  assignedList={getPrivilegesByKey(def.key)}
-                  onOpenModal={(key) => handleOpenModal(key, 'saturday')}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* SUNDAY COLUMN */}
-          <div className="matrix-column space-y-6">
-            <div className="flex items-center justify-between border-b border-[var(--border-strong)] pb-3">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-[var(--text-secondary)]" />
-                Domingo
-              </h2>
-              <Badge variant="secondary" size="sm">Servicio Dominical</Badge>
-            </div>
-
-            <div className="space-y-4">
-              {sundayPrivileges.map((def) => (
-                <PrivilegeMatrixSlot
-                  key={def.key}
-                  definition={def}
-                  assignedList={getPrivilegesByKey(def.key)}
-                  onOpenModal={(key) => handleOpenModal(key, 'sunday')}
-                />
-              ))}
-            </div>
-          </div>
+              <div className="space-y-4">
+                {PRIVILEGE_DEFINITIONS.filter((p) => p.day === col.day).map((def) => (
+                  <PrivilegeMatrixSlot
+                    key={def.key}
+                    definition={def}
+                    assignedList={getPrivilegesByKey(def.key)}
+                    onOpenModal={(key) => handleOpenModal(key, col.day)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>
   )
+}
+
+function PrivilegeIcon({ name }: { name: string }) {
+  const className = 'w-4 h-4 text-[var(--text-primary)]'
+  switch (name) {
+    case 'Guitar': return <Guitar className={className} aria-hidden="true" />
+    case 'Mic': return <Mic className={className} aria-hidden="true" />
+    case 'Users': return <Users className={className} aria-hidden="true" />
+    default: return <Music className={className} aria-hidden="true" />
+  }
 }
 
 function PrivilegeMatrixSlot({
@@ -228,95 +193,79 @@ function PrivilegeMatrixSlot({
   assignedList: WeeklyPrivilege[]
   onOpenModal: (key: PrivilegeKey) => void
 }) {
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Guitar': return <Guitar className="w-4 h-4 text-[var(--text-primary)]" />
-      case 'Mic': return <Mic className="w-4 h-4 text-[var(--text-primary)]" />
-      case 'Users': return <Users className="w-4 h-4 text-[var(--text-primary)]" />
-      case 'Music': default: return <Music className="w-4 h-4 text-[var(--text-primary)]" />
-    }
-  }
-
   return (
     <Card className="border-[var(--border-normal)] bg-[var(--bg-raised)]">
-      <CardHeader className="pb-3 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center">
-              {getIcon(definition.iconName)}
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold text-[var(--text-primary)]">
-                {definition.title}
-              </CardTitle>
-              <p className="text-xs text-[var(--text-tertiary)]">{definition.description}</p>
-            </div>
+      <CardHeader className="border-b border-[var(--border-subtle)]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center shrink-0">
+            <PrivilegeIcon name={definition.iconName} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base font-semibold">{definition.title}</CardTitle>
+            <p className="text-xs text-[var(--text-tertiary)]">{definition.description}</p>
           </div>
           <Button
-            size="sm"
+            size="icon-sm"
             variant="ghost"
-            className="text-xs h-7 px-2"
+            className="sm:w-auto sm:px-2 shrink-0 -mr-2 -mt-1 sm:mr-0 sm:mt-0"
             onClick={() => onOpenModal(definition.key)}
+            aria-label={`Añadirme a ${definition.title} (${definition.dayLabel})`}
           >
-            <PlusCircle className="w-3.5 h-3.5 mr-1" />
-            Añadir
+            <PlusCircle className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
+            <span className="hidden sm:inline text-xs">Añadir</span>
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-4 space-y-4">
+      <CardContent className="pt-4 sm:pt-4 space-y-3">
         {assignedList.length === 0 ? (
-          <div className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] flex items-center justify-between gap-3">
-            <span className="text-xs text-[var(--text-tertiary)] font-mono">Slot libre sin registrar aún</span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              onClick={() => onOpenModal(definition.key)}
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
+          <div className="p-3 sm:p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <span className="text-sm text-[var(--text-tertiary)] font-mono">Slot libre sin registrar aún</span>
+            <Button size="sm" variant="outline" onClick={() => onOpenModal(definition.key)} fullWidthMobile>
+              <Plus className="w-4 h-4" />
               Registrarme aquí
             </Button>
           </div>
         ) : (
           assignedList.map((privilege) => (
             <div key={privilege.id} className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold text-[10px]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold text-xs shrink-0">
                     {privilege.profile_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">{privilege.profile_name}</span>
+                  </span>
+                  <span className="text-sm font-semibold truncate">{privilege.profile_name}</span>
                 </div>
-                <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
+                <span className="text-caption font-mono text-[var(--text-tertiary)] pl-9 sm:pl-0">
                   {formatFullSpanishDate(privilege.assigned_date)}
                 </span>
               </div>
 
-              {/* Song List */}
               {privilege.songs && privilege.songs.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t border-[var(--border-subtle)]">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)]">Alabanzas ({privilege.songs.length}):</p>
-                  <div className="grid gap-1">
+                  <p className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)]">
+                    Alabanzas ({privilege.songs.length})
+                  </p>
+                  <ol className="grid grid-cols-1 gap-1">
                     {privilege.songs.map((song, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-[var(--bg-raised)] border border-[var(--border-subtle)]">
-                        <span className="text-[var(--text-primary)] font-medium">{idx + 1}. {song.title}</span>
+                      <li
+                        key={idx}
+                        className="flex items-center justify-between gap-2 text-sm py-1.5 px-2 rounded bg-[var(--bg-raised)] border border-[var(--border-subtle)]"
+                      >
+                        <span className="font-medium min-w-0 truncate">{idx + 1}. {song.title}</span>
                         {song.key && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[var(--bg-active)] text-[var(--text-secondary)]">
+                          <span className="text-caption font-mono px-1.5 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] shrink-0">
                             {song.key}
                           </span>
                         )}
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                 </div>
               )}
 
-              {/* Optional Notes */}
               {privilege.notes && (
-                <p className="text-xs text-[var(--text-tertiary)] italic pt-1">
-                  "{privilege.notes}"
-                </p>
+                <p className="text-sm text-[var(--text-tertiary)] italic pt-1 break-words">&ldquo;{privilege.notes}&rdquo;</p>
               )}
             </div>
           ))

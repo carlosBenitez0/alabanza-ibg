@@ -3,13 +3,14 @@
 export const dynamic = 'force-dynamic'
 
 import { useAuth } from '@/components/providers/auth-provider'
+import { useProfile } from '@/components/providers/profile-provider'
 import { useSupabase } from '@/hooks/use-supabase'
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui'
-import { Bell, Mail, Calendar, Check, Clock, Music, AlertCircle } from 'lucide-react'
-import { formatDate, formatTime, cn } from '@/lib/utils'
-import { Badge } from '@/components/ui'
+import { useCallback } from 'react'
+import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
+import { Button, PageHeader, PageLoader, EmptyState } from '@/components/ui'
+import { Bell, Calendar, Check, CheckCheck, Clock, Music, ChevronRight } from 'lucide-react'
+import { formatDate, cn } from '@/lib/utils'
 
 interface Notification {
   id: string
@@ -21,209 +22,184 @@ interface Notification {
   created_at: string
 }
 
-export default function NotificationsPage() {
-  const { user, loading: authLoading } = useAuth()
-  const supabase = useSupabase()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (user) fetchNotifications()
-  }, [user])
-
-  const fetchNotifications = async () => {
-    if (!user) return
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('profile_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (error) throw error
-      setNotifications(data || [])
-      setUnreadCount(data?.filter(n => !n.read).length || 0)
-    } catch {
-      setNotifications([])
-      setUnreadCount(0)
-    } finally {
-      setLoading(false)
-    }
+function NotificationIcon({ type }: { type: string }) {
+  const className = 'w-5 h-5'
+  switch (type) {
+    case 'assignment': return <Calendar className={cn(className, 'text-[var(--color-info)]')} aria-hidden="true" />
+    case 'song_list_submitted':
+    case 'new_song': return <Music className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
+    case 'song_list_approved': return <Check className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
+    case 'reminder': return <Clock className={cn(className, 'text-[var(--color-warning)]')} aria-hidden="true" />
+    default: return <Bell className={cn(className, 'text-[var(--text-secondary)]')} aria-hidden="true" />
   }
-
-  const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id)
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    setUnreadCount(prev => Math.max(0, prev - 1))
-  }
-
-  const markAllAsRead = async () => {
-    await supabase.from('notifications').update({ read: true }).eq('profile_id', user?.id).eq('read', false)
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    setUnreadCount(0)
-  }
-
-  if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative w-8 h-8">
-          <div className="absolute inset-0 border-3 border-brand-200 dark:border-brand-800 rounded-full" />
-          <div className="absolute inset-0 border-3 border-brand-500 rounded-full animate-spin border-t-transparent" />
-        </div>
-      </div>
-    )
-  }
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'assignment': return <Calendar className="w-5 h-5 text-brand-500" />
-      case 'song_list_submitted': return <Music className="w-5 h-5 text-success" />
-      case 'song_list_approved': return <Check className="w-5 h-5 text-success" />
-      case 'reminder': return <Clock className="w-5 h-5 text-warning" />
-      default: return <Bell className="w-5 h-5 text-neutral-500" />
-    }
-  }
-
-  const getNotificationAction = (notification: Notification) => {
-    if (notification.data?.event_id) {
-      return (
-        <Link href={`/dashboard/events/${notification.data.event_id}`} className="text-sm text-brand-600 dark:text-brand-400 hover:underline font-medium">
-          Ver evento
-        </Link>
-      )
-    }
-    if (notification.data?.song_list_id) {
-      return (
-        <Link href={`/dashboard/events/${notification.data.event_id}/song-list`} className="text-sm text-brand-600 dark:text-brand-400 hover:underline font-medium">
-          Ver lista
-        </Link>
-      )
-    }
-    return null
-  }
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
-            <Bell className="w-7 h-7 text-brand-500" />
-            Notificaciones
-          </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-1">Mantente al día con tu ministerio</p>
-        </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead} iconPosition="left">
-            <Check className="w-4 h-4" />
-            Marcar todo como leído ({unreadCount})
-          </Button>
-        )}
-      </div>
-
-      {notifications.length === 0 ? (
-        <Card className="bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800">
-          <CardContent className="py-16 text-center">
-            <Bell className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-900 dark:text-white mb-2">No hay notificaciones</h3>
-            <p className="text-neutral-500 dark:text-neutral-400">Cuando tengas actividad, aparecerá aquí.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => (
-            <NotificationCard
-              key={notification.id}
-              notification={notification}
-              onRead={markAsRead}
-              icon={getNotificationIcon(notification.type)}
-              action={getNotificationAction(notification)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
 }
 
-function NotificationCard({
-  notification,
-  onRead,
-  icon,
-  action,
-}: {
-  notification: Notification
-  onRead: (id: string) => void
-  icon: React.ReactNode
-  action: React.ReactNode | null
-}) {
-  const isUnread = !notification.read
-  const timeAgo = getTimeAgo(notification.created_at)
-
-  return (
-    <Card
-      className={cn(
-        'transition-all duration-200 hover:shadow-lg',
-        isUnread ? 'bg-brand-50/50 dark:bg-brand-900/10 border-brand-200 dark:border-brand-800' : 'border-neutral-200 dark:border-neutral-800'
-      )}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-            {icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h4 className={cn('font-medium text-neutral-900 dark:text-white', isUnread && 'font-semibold')}>
-                  {notification.title}
-                </h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{notification.message}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs text-neutral-400 dark:text-neutral-500 whitespace-nowrap">{timeAgo}</span>
-                {isUnread && (
-                  <span className="w-2 h-2 bg-brand-500 rounded-full" />
-                )}
-              </div>
-            </div>
-            {action && (
-              <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                {action}
-                {isUnread && (
-                  <Button variant="ghost" size="sm" onClick={() => onRead(notification.id)}>
-                    Marcar como leído
-                  </Button>
-                )}
-              </div>
-            )}
-            {!action && isUnread && (
-              <div className="mt-3">
-                <Button variant="ghost" size="sm" onClick={() => onRead(notification.id)}>
-                  Marcar como leído
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+/** Where a notification leads, if anywhere */
+function getNotificationHref(notification: Notification): { href: string; label: string } | null {
+  const eventId = notification.data?.event_id
+  if (typeof eventId === 'string' && eventId) {
+    return { href: `/dashboard/events/${eventId}`, label: 'Ver evento' }
+  }
+  if (notification.type === 'new_privilege') {
+    return { href: '/dashboard/weekly-schedule', label: 'Ver tabla semanal' }
+  }
+  if (notification.type === 'new_song') {
+    return { href: '/dashboard/songs', label: 'Ver repertorio' }
+  }
+  return null
 }
 
 function getTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
+  const diffMs = Date.now() - new Date(dateString).getTime()
   const diffMins = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
   if (diffMins < 1) return 'Ahora mismo'
   if (diffMins < 60) return `Hace ${diffMins} min`
-  if (diffHours < 24) return `Hace ${diffHours}h`
-  if (diffDays < 7) return `Hace ${diffDays}d`
-  return formatDate(date)
+  if (diffHours < 24) return `Hace ${diffHours} h`
+  if (diffDays < 7) return `Hace ${diffDays} d`
+  return formatDate(dateString)
+}
+
+export default function NotificationsPage() {
+  const { user, loading: authLoading } = useAuth()
+  const { refreshUnread } = useProfile()
+  const supabase = useSupabase()
+  const fetchNotifications = useCallback(async (): Promise<Notification[]> => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('profile_id', user?.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    return data || []
+  }, [supabase, user])
+
+  const { data: notifications, setData: setNotifications, loading } = useAsyncData<Notification[]>(
+    user ? fetchNotifications : null,
+    []
+  )
+
+  const markAsRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+    await supabase.from('notifications').update({ read: true }).eq('id', id)
+    refreshUnread()
+  }
+
+  const markAllAsRead = async () => {
+    if (!user) return
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    await supabase.from('notifications').update({ read: true }).eq('profile_id', user.id).eq('read', false)
+    refreshUnread()
+  }
+
+  if (authLoading || loading) {
+    return <PageLoader />
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  return (
+    <div className="space-y-5 sm:space-y-6 animate-fade-in">
+      <PageHeader
+        title="Notificaciones"
+        description="Mantente al día con tu ministerio"
+        actions={
+          unreadCount > 0 ? (
+            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+              <CheckCheck className="w-4 h-4" />
+              Marcar todo como leído ({unreadCount})
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {notifications.length === 0 ? (
+        <EmptyState
+          icon={<Bell />}
+          title="No hay notificaciones"
+          description="Cuando tengas actividad, aparecerá aquí."
+        />
+      ) : (
+        <ul className="space-y-2 sm:space-y-3">
+          {notifications.map((notification) => (
+            <NotificationItem key={notification.id} notification={notification} onRead={markAsRead} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function NotificationItem({
+  notification,
+  onRead,
+}: {
+  notification: Notification
+  onRead: (id: string) => void
+}) {
+  const isUnread = !notification.read
+  const target = getNotificationHref(notification)
+
+  const body = (
+    <>
+      <span className="shrink-0 w-10 h-10 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center">
+        <NotificationIcon type={notification.type} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="flex items-start justify-between gap-2">
+          <span className={cn('text-sm text-[var(--text-primary)]', isUnread ? 'font-semibold' : 'font-medium')}>
+            {notification.title}
+          </span>
+          {isUnread && <span className="mt-1.5 w-2 h-2 rounded-full bg-[var(--text-primary)] shrink-0" aria-label="Sin leer" />}
+        </span>
+        <span className="block text-sm text-[var(--text-secondary)] mt-0.5 break-words">{notification.message}</span>
+        <span className="flex items-center gap-2 mt-1.5 text-xs text-[var(--text-tertiary)]">
+          <time dateTime={notification.created_at}>{getTimeAgo(notification.created_at)}</time>
+          {target && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="font-medium text-[var(--text-secondary)]">{target.label}</span>
+            </>
+          )}
+        </span>
+      </span>
+      {target && <ChevronRight className="w-4 h-4 mt-3 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />}
+    </>
+  )
+
+  const rowClasses = cn(
+    'flex items-start gap-3 w-full text-left p-3 sm:p-4 transition-colors',
+    target && 'hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]'
+  )
+
+  return (
+    <li
+      className={cn(
+        'rounded-[var(--radius-lg)] border overflow-hidden flex items-stretch',
+        isUnread ? 'bg-[var(--bg-raised)] border-[var(--border-strong)]' : 'bg-[var(--bg-page)] border-[var(--border-subtle)]'
+      )}
+    >
+      {target ? (
+        <Link href={target.href} onClick={() => isUnread && onRead(notification.id)} className={cn(rowClasses, 'flex-1 min-w-0')}>
+          {body}
+        </Link>
+      ) : (
+        <div className={cn(rowClasses, 'flex-1 min-w-0')}>{body}</div>
+      )}
+      {isUnread && (
+        <button
+          type="button"
+          onClick={() => onRead(notification.id)}
+          className="shrink-0 w-12 sm:w-14 flex items-center justify-center border-l border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+          aria-label={`Marcar como leída: ${notification.title}`}
+          title="Marcar como leída"
+        >
+          <Check className="w-5 h-5" />
+        </button>
+      )}
+    </li>
+  )
 }

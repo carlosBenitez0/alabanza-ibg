@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useAuth } from '@/components/providers/auth-provider'
 import { ALL_MUSIC_KEYS } from '@/components/privileges/song-autocomplete'
-import { Input, Button, Textarea } from '@/components/ui'
-import { Music, Plus, X, CheckCircle2, Link as LinkIcon } from 'lucide-react'
+import { Input, Button, Textarea, Modal } from '@/components/ui'
+import { Music, CheckCircle2 } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
-import { getLocalSongs, saveLocalSong } from '@/lib/song-storage'
+import { saveLocalSong } from '@/lib/song-storage'
 
 interface AddSongModalProps {
   isOpen: boolean
@@ -25,8 +25,6 @@ export function AddSongModal({ isOpen, onClose, onSuccess }: AddSongModalProps) 
   const [bpm, setBpm] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
-
-  if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,107 +86,96 @@ export function AddSongModal({ isOpen, onClose, onSuccess }: AddSongModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div
-        className="relative w-full max-w-lg bg-[var(--bg-raised)] border border-[var(--border-normal)] rounded-[var(--radius-xl)] shadow-2xl overflow-hidden animate-scale-in text-[var(--text-primary)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-page)]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center font-bold">
-              <Music className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-[var(--text-primary)]">
-                Proponer / Agregar Alabanza
-              </h2>
-              <p className="text-xs text-[var(--text-tertiary)]">
-                Añade una alabanza al catálogo general del ministerio
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Proponer / Agregar Alabanza"
+      description="Añade una alabanza al catálogo general del ministerio"
+      dismissible={!loading}
+      icon={
+        <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--text-primary)] text-[var(--text-inverse)] flex items-center justify-center">
+          <Music className="w-4 h-4" aria-hidden="true" />
+        </div>
+      }
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="add-song-form" loading={loading}>
+            <CheckCircle2 className="w-4 h-4" />
+            Guardar en Catálogo
+          </Button>
+        </>
+      }
+    >
+      <form id="add-song-form" onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          id="song-title"
+          label="Título de la alabanza"
+          placeholder="Ej. La Bondad de Dios, Tu Fidelidad..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          disabled={loading}
+          autoComplete="off"
+          enterKeyHint="next"
+          data-autofocus
+        />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="song-key" className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+              Tono por defecto
+            </label>
+            <select
+              id="song-key"
+              value={defaultKey}
+              onChange={(e) => setDefaultKey(e.target.value)}
+              disabled={loading}
+              className="w-full h-11 sm:h-10 bg-[var(--bg-raised)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-base sm:text-sm px-3 font-mono focus:outline-none focus:border-[var(--text-primary)] focus:ring-1 focus:ring-[var(--text-primary)]"
+            >
+              <optgroup label="Tonos Mayores">
+                {ALL_MUSIC_KEYS.slice(0, 12).map((k) => (
+                  <option key={k.code} value={k.code} className="bg-[var(--bg-raised)]">
+                    {k.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Tonos Menores">
+                {ALL_MUSIC_KEYS.slice(12).map((k) => (
+                  <option key={k.code} value={k.code} className="bg-[var(--bg-raised)]">
+                    {k.label}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-raised)] transition-colors"
-            aria-label="Cerrar modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Input
+            id="song-bpm"
+            label="BPM / Tempo (opcional)"
+            placeholder="Ej. 72, 128..."
+            type="number"
+            inputMode="numeric"
+            min={20}
+            max={300}
+            value={bpm}
+            onChange={(e) => setBpm(e.target.value)}
+            disabled={loading}
+          />
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <Input
-            label="Título de la Alabanza *"
-            placeholder="Ej. La Bondad de Dios, Tu Fidelidad..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[var(--text-primary)]">
-                Tono por Defecto
-              </label>
-              <select
-                value={defaultKey}
-                onChange={(e) => setDefaultKey(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[var(--bg-surface)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-xs p-2.5 font-mono focus:outline-none focus:border-[var(--text-primary)]"
-              >
-                <optgroup label="Tonos Mayores">
-                  {ALL_MUSIC_KEYS.slice(0, 12).map((k) => (
-                    <option key={k.code} value={k.code} className="bg-[var(--bg-raised)]">
-                      {k.label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Tonos Menores">
-                  {ALL_MUSIC_KEYS.slice(12).map((k) => (
-                    <option key={k.code} value={k.code} className="bg-[var(--bg-raised)]">
-                      {k.label}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            <Input
-              label="BPM / Tempo (opcional)"
-              placeholder="Ej. 72, 128..."
-              type="number"
-              value={bpm}
-              onChange={(e) => setBpm(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <Textarea
-            label="Notas / Enlace de YouTube / Referencia (opcional)"
-            placeholder="Ej. Versión en vivo de Bethel, o intro con piano..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={loading}
-            className="min-h-[70px] text-xs"
-          />
-
-          {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" size="sm" loading={loading}>
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              Guardar en Catálogo
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <Textarea
+          id="song-notes"
+          label="Notas / Enlace de YouTube / Referencia (opcional)"
+          placeholder="Ej. Versión en vivo de Bethel, o intro con piano..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          disabled={loading}
+          className="min-h-[80px]"
+        />
+      </form>
+    </Modal>
   )
 }

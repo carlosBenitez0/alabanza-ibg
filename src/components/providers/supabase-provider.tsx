@@ -1,24 +1,11 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
-import { ReactNode, useMemo, useEffect, useState } from 'react'
+import { ReactNode } from 'react'
 
+/**
+ * Kept as a boundary for the (auth), dashboard and admin trees. The Supabase
+ * browser client itself is a singleton obtained through useSupabase().
+ */
 export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false)
-  const supabase = useMemo(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return null
-    }
-    return createClient()
-  }, [])
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <>{children}</>
-  }
-
   return <>{children}</>
 }

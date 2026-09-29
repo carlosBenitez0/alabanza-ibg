@@ -19,36 +19,38 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Alabanza IBG",
+  },
+  formatDetection: {
+    telephone: false,
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
-  ],
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#0a0a0a",
+  colorScheme: "dark",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="es" className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
         <link rel="icon" href="/ibglogo.png" sizes="any" />
-        <link rel="apple-touch-icon" href="/ibglogoconletras.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className="min-h-full flex flex-col bg-neutral-50 dark:bg-neutral-950">
+      <body className="min-h-dvh flex flex-col">
         <a href="#main-content" className="skip-link">
           Saltar al contenido principal
         </a>
         <ToastProvider>
           {children}
         </ToastProvider>
-      {/* impeccable-live-start */}
-<script src="http://localhost:8400/live.js?token=f0790135-29e2-4672-869f-fa15f046723e"></script>
-{/* impeccable-live-end */}
-</body>
+      </body>
     </html>
   )
 }
