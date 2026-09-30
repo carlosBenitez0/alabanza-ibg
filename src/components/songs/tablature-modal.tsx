@@ -12,6 +12,40 @@ import { keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, 
 import { downloadTablaturePdf, pdfFileName } from '@/lib/tablature-pdf'
 import { cn } from '@/lib/utils'
 
+// Safari (iPad, older iOS) still exposes the webkit-prefixed Fullscreen API
+type WebkitDocument = Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> | void }
+type WebkitElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }
+
+function getFullscreenElement(): Element | null {
+  const doc = document as WebkitDocument
+  return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null
+}
+
+async function requestBrowserFullscreen(): Promise<boolean> {
+  const el = document.documentElement as WebkitElement
+  try {
+    if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' })
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen()
+    else return false
+    return Boolean(getFullscreenElement())
+  } catch {
+    return false // Not allowed here (e.g. iPhone Safari): the CSS stage layout still applies
+  }
+}
+
+function exitBrowserFullscreen() {
+  const doc = document as WebkitDocument
+  const exit = doc.exitFullscreen?.bind(doc) ?? doc.webkitExitFullscreen?.bind(doc)
+  Promise.resolve(exit?.()).catch(() => {})
+}
+
+// The "add to home screen" hint is shown once per visit
+let stageHintShown = false
+
+function isStandaloneApp(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches
+}
+
 interface TablatureModalProps {
   song: CatalogSong | null
   isOpen: boolean
@@ -77,6 +111,40 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
       lock?.release().catch(() => {})
     }
   }, [isOpen, isFullscreen])
+
+  // Stage mode also asks the browser for real fullscreen, hiding its address bar and
+  // bottom toolbar on phones. Leaving fullscreen (back gesture, Esc) leaves stage mode.
+  useEffect(() => {
+    if (!isOpen || !isFullscreen) return
+    const onChange = () => {
+      if (!getFullscreenElement()) setIsFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
+      // Closing the modal or leaving stage mode drops browser fullscreen too
+      if (getFullscreenElement()) exitBrowserFullscreen()
+    }
+  }, [isOpen, isFullscreen])
+
+  const toggleStageMode = async () => {
+    if (isFullscreen) {
+      setIsFullscreen(false)
+      return
+    }
+    // Must run inside the click handler: browsers only grant fullscreen on a user gesture
+    const entered = await requestBrowserFullscreen()
+    setIsFullscreen(true)
+    if (!entered && !isStandaloneApp() && !stageHintShown) {
+      stageHintShown = true
+      toast({
+        title: 'Pantalla completa limitada',
+        description: 'Este navegador no deja ocultar sus barras. Agrega la app a tu pantalla de inicio para verla sin ellas.',
+      })
+    }
+  }
 
   if (!song) return null
 
@@ -348,7 +416,7 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
         !isEditing && (
           <button
             type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            onClick={toggleStageMode}
             className="touch-target sm:min-h-9 sm:min-w-9 flex items-center justify-center rounded-[var(--radius)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-raised)] transition-colors"
             aria-label={isFullscreen ? 'Salir del modo escenario' : 'Modo escenario'}
             aria-pressed={isFullscreen}
