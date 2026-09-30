@@ -7,7 +7,8 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { PRIVILEGE_DEFINITIONS, PRIVILEGES_WITH_BACKING_VOCALS, PrivilegeKey, PrivilegeSongItem } from '@/types/privileges'
 import { getAutoDateForPrivilege, getUpcomingServiceDate, formatFullSpanishDate, formatISOShortDate, getNextWeekDate } from '@/lib/date-helpers'
 import { saveLocalPrivilege, getLocalPrivileges, addBackingVocal, removeBackingVocal } from '@/lib/privilege-storage'
-import { SongAutocomplete, ALL_MUSIC_KEYS } from '@/components/privileges/song-autocomplete'
+import { SongAutocomplete } from '@/components/privileges/song-autocomplete'
+import { sameModeKeys } from '@/lib/chords'
 import { Button, Badge, Textarea, Modal } from '@/components/ui'
 import { Guitar, Mic, Users, Music, Calendar, Trash2, CheckCircle2, Clock, X } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
@@ -375,7 +376,7 @@ export function RegisterPrivilegeModal({
                       onChange={(e) => handleChangeSongKey(idx, e.target.value)}
                       className="flex-1 sm:flex-none h-11 sm:h-8 bg-[var(--bg-active)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius)] text-base sm:text-xs px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
                     >
-                      {ALL_MUSIC_KEYS.map((k) => (
+                      {sameModeKeys(song.key).map((k) => (
                         <option key={k.code} value={k.code} className="bg-[var(--bg-raised)] text-[var(--text-primary)]">
                           {k.label}
                         </option>
