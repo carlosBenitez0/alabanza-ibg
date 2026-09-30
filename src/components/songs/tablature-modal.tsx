@@ -5,10 +5,11 @@ import { CatalogSong } from '@/types/privileges'
 import { useSupabase } from '@/hooks/use-supabase'
 import { saveLocalSong } from '@/lib/song-storage'
 import { Button, Badge, Textarea, Modal } from '@/components/ui'
-import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Printer, WrapText, Minus, Plus, RotateCcw, Save } from 'lucide-react'
+import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Download, WrapText, Minus, Plus, RotateCcw, Save } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
 import { ALL_MUSIC_KEYS, getKeyLabel } from '@/lib/music-keys'
 import { keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
+import { downloadTablaturePdf, pdfFileName } from '@/lib/tablature-pdf'
 import { cn } from '@/lib/utils'
 
 interface TablatureModalProps {
@@ -36,6 +37,7 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
   const [baseKey, setBaseKey] = useState<string | null>(null)
   const [shift, setShift] = useState(0)
   const [confirmKeySave, setConfirmKeySave] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const fontSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl']
 
@@ -124,98 +126,21 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
     toast({ title: 'Copiado', description: 'Tablatura copiada al portapapeles', variant: 'success' })
   }
 
-  const handleExportPDF = () => {
-    if (!tabContent) return
-
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      toast({
-        title: 'Error de ventanas emergentes',
-        description: 'Por favor, permite las ventanas emergentes para exportar a PDF.',
-        variant: 'destructive',
+  const handleExportPDF = async () => {
+    if (!displayContent || exporting) return
+    setExporting(true)
+    try {
+      await downloadTablaturePdf({
+        title: song.title,
+        keyLabel: keyText,
+        content: displayContent,
+        fileName: pdfFileName(song.title, viewKey ?? baseKey),
       })
-      return
+    } catch {
+      toast({ title: 'No se pudo crear el PDF', description: 'Inténtalo de nuevo en unos segundos.', variant: 'destructive' })
+    } finally {
+      setExporting(false)
     }
-
-    const escapeHtml = (value: string) =>
-      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-    const keyLabel = escapeHtml(keyText)
-    const safeTitle = escapeHtml(song.title)
-    const safeContent = escapeHtml(displayContent)
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${safeTitle} - Tablatura</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              padding: 40px;
-              color: #000;
-              background: #fff;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 2px solid #000;
-              padding-bottom: 15px;
-              margin-bottom: 25px;
-            }
-            .title {
-              font-size: 24px;
-              font-weight: bold;
-              margin: 0;
-            }
-            .key-badge {
-              font-family: monospace;
-              font-size: 14px;
-              font-weight: bold;
-              background: #f0f0f0;
-              border: 1px solid #ccc;
-              padding: 4px 8px;
-              border-radius: 4px;
-            }
-            .subtitle {
-              font-size: 12px;
-              color: #666;
-              margin-top: 5px;
-            }
-            .content {
-              font-family: Consolas, Monaco, "Courier New", Courier, monospace;
-              font-size: 14px;
-              white-space: pre-wrap;
-              line-height: 1.6;
-              overflow-wrap: break-word;
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <h1 class="title">${safeTitle}</h1>
-              <div class="subtitle">Ministerio de Alabanza IBG</div>
-            </div>
-            <div class="key-badge">Tono: ${keyLabel}</div>
-          </div>
-          <pre class="content">${safeContent}</pre>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() {
-                window.close();
-              }, 100);
-            };
-          </script>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
   }
 
   const handleSaveTablature = async (e: React.FormEvent) => {
@@ -292,9 +217,16 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
             {copied ? <Check className="w-4 h-4 text-[var(--color-success)]" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
             <span>{copied ? 'Copiado' : 'Copiar'}</span>
           </button>
-          <button type="button" className={toolButton} onClick={handleExportPDF}>
-            <Printer className="w-4 h-4" aria-hidden="true" />
-            <span>PDF</span>
+          <button
+            type="button"
+            className={toolButton}
+            onClick={handleExportPDF}
+            disabled={exporting}
+            aria-busy={exporting}
+            aria-label="Descargar PDF"
+          >
+            <Download className={cn('w-4 h-4', exporting && 'animate-pulse')} aria-hidden="true" />
+            <span>{exporting ? 'Creando…' : 'PDF'}</span>
           </button>
         </>
       )}
