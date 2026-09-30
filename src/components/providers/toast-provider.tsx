@@ -127,7 +127,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
           <p className="mt-0.5 text-sm text-[var(--text-secondary)] break-words">{toast.description}</p>
         )}
         {toast.action && (
-          <div className="mt-3">{toast.action}</div>
+          // Acting on a toast (e.g. "Deshacer") also closes it
+          <div className="mt-3" onClick={() => onDismiss(toast.id)}>
+            {toast.action}
+          </div>
         )}
       </div>
       <button

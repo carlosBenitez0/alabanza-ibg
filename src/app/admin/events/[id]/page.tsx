@@ -67,6 +67,8 @@ export default function EditEventPage() {
   const [newMember, setNewMember] = useState('')
   const [newRole, setNewRole] = useState<AssignmentRole>('lead_vocal')
   const [editing, setEditing] = useState<AssignmentRow | null>(null)
+  // Removing someone takes a second, explicit tap
+  const [confirmRemove, setConfirmRemove] = useState(false)
   // Unsaved repertoire edits (null = showing what is saved)
   const [songsDraft, setSongsDraft] = useState<PrivilegeSongItem[] | null>(null)
   const [savingSongs, setSavingSongs] = useState(false)
@@ -156,20 +158,31 @@ export default function EditEventPage() {
 
   const handleStatusChange = async (assignment: AssignmentRow, status: AssignmentStatus) => {
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('event_assignments')
       .update({ status, confirmed_at: status === 'confirmed' ? new Date().toISOString() : null })
       .eq('id', assignment.id)
     setSaving(false)
+    if (error) {
+      toast({ title: 'No se pudo cambiar el estado', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: `${profileName(assignment)}: ${getAssignmentStatusLabel(status).toLowerCase()}`, variant: 'success' })
     setEditing(null)
     team.reload()
   }
 
   const handleRemoveAssignment = async (assignment: AssignmentRow) => {
     setSaving(true)
-    await supabase.from('event_assignments').delete().eq('id', assignment.id)
+    const { error } = await supabase.from('event_assignments').delete().eq('id', assignment.id)
     setSaving(false)
+    if (error) {
+      toast({ title: 'No se pudo quitar del evento', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: `${profileName(assignment)} ya no está en el evento`, variant: 'success' })
     setEditing(null)
+    setConfirmRemove(false)
     team.reload()
   }
 
@@ -353,7 +366,10 @@ export default function EditEventPage() {
       {/* Edit one assignment */}
       <Modal
         isOpen={!!editing}
-        onClose={() => setEditing(null)}
+        onClose={() => {
+          setEditing(null)
+          setConfirmRemove(false)
+        }}
         size="sm"
         title={editing ? profileName(editing) : ''}
         description={editing ? getAssignmentRoleLabel(editing.role) : undefined}
@@ -384,15 +400,31 @@ export default function EditEventPage() {
                 ))}
               </div>
             </fieldset>
-            <Button
-              variant="outline"
-              className="w-full text-[var(--color-error)] border-[var(--color-error)]/40"
-              onClick={() => handleRemoveAssignment(editing)}
-              loading={saving}
-            >
-              <Trash2 className="w-4 h-4" />
-              Quitar del evento
-            </Button>
+            {confirmRemove ? (
+              <div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-error)]/40 space-y-3" role="alert">
+                <p className="text-sm text-[var(--text-primary)]">
+                  ¿Quitar a <strong>{profileName(editing)}</strong> de este evento?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => setConfirmRemove(false)} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleRemoveAssignment(editing)} loading={saving}>
+                    Sí, quitar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full text-[var(--color-error)] border-[var(--color-error)]/40"
+                onClick={() => setConfirmRemove(true)}
+                disabled={saving}
+              >
+                <Trash2 className="w-4 h-4" />
+                Quitar del evento
+              </Button>
+            )}
           </div>
         )}
       </Modal>

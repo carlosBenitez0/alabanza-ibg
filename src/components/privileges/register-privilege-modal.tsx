@@ -6,7 +6,14 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { PRIVILEGE_DEFINITIONS, PRIVILEGES_WITH_BACKING_VOCALS, PrivilegeKey, PrivilegeSongItem } from '@/types/privileges'
 import { getAutoDateForPrivilege, getUpcomingServiceDate, formatFullSpanishDate, formatISOShortDate, getNextWeekDate } from '@/lib/date-helpers'
-import { saveLocalPrivilege, getLocalPrivileges, addBackingVocal, removeBackingVocal } from '@/lib/privilege-storage'
+import {
+  saveLocalPrivilege,
+  getLocalPrivileges,
+  removeLocalPrivilege,
+  addBackingVocal,
+  removeBackingVocal,
+} from '@/lib/privilege-storage'
+import { useProfile } from '@/components/providers/profile-provider'
 import { SongAutocomplete } from '@/components/privileges/song-autocomplete'
 import { sameModeKeys } from '@/lib/chords'
 import { Button, Badge, Textarea, Modal } from '@/components/ui'
@@ -45,6 +52,7 @@ export function RegisterPrivilegeModal({
   onSuccess,
 }: RegisterPrivilegeModalProps) {
   const { user } = useAuth()
+  const { profile } = useProfile()
   const supabase = useSupabase()
   const { toast } = useToast()
 
@@ -189,23 +197,10 @@ export function RegisterPrivilegeModal({
 
     setLoading(true)
 
-    const newPrivilegeRecord = {
-      id: `priv_${Date.now()}`,
-      profile_id: user.id,
-      profile_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Miembro',
-      privilege_key: selectedPrivilege,
-      assigned_date: isoShortDate,
-      songs: songs,
-      notes: notes.trim() || undefined,
-      created_at: new Date().toISOString(),
-    }
-
-    // Save locally for instant persistence
-    saveLocalPrivilege(newPrivilegeRecord)
-
-    let backingErrors: string[] = []
+    let savedId: string | null = null
+    let serverError = false
     try {
-      const { data: saved } = await supabase
+      const { data: saved, error } = await supabase
         .from('weekly_privileges')
         .upsert(
           {
@@ -219,17 +214,47 @@ export function RegisterPrivilegeModal({
         )
         .select('id')
         .single()
-      if (saved?.id && takesBackingVocals) backingErrors = await syncBackingVocals(saved.id)
-      else if (!saved?.id && takesBackingVocals && backing.length !== existing.data.backing.length) {
-        backingErrors = ['Las coristas se guardan cuando hay conexión.']
-      }
+      if (error) serverError = true
+      else savedId = saved?.id ?? null
     } catch {
-      // Quiet failover
+      // Network failure: handled below as offline
     }
 
-    // Notify all users about the new privilege (safe to ignore failures)
-    try {
-      await fetch('/api/notifications', {
+    // The server answered "no" (permissions, validation): nothing was saved anywhere
+    if (serverError) {
+      setLoading(false)
+      toast({
+        title: 'No se pudo registrar tu privilegio',
+        description: 'Inténtalo de nuevo. Si el problema sigue, avísale a un líder.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // No connection: keep it on this phone so the work isn't lost, and say so
+    const offline = !savedId
+    if (offline) {
+      saveLocalPrivilege({
+        id: `priv_${Date.now()}`,
+        profile_id: user.id,
+        profile_name: profile?.full_name || user.email?.split('@')[0] || 'Miembro',
+        privilege_key: selectedPrivilege,
+        assigned_date: isoShortDate,
+        songs,
+        notes: notes.trim() || undefined,
+        created_at: new Date().toISOString(),
+      })
+    } else {
+      // The database is the source of truth now; drop any older offline copy
+      removeLocalPrivilege(user.id, selectedPrivilege, isoShortDate)
+    }
+
+    let backingErrors: string[] = []
+    if (savedId && takesBackingVocals) backingErrors = await syncBackingVocals(savedId)
+
+    // Notify all users about the new privilege (best-effort, only once it is really saved)
+    if (!offline) {
+      fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -239,16 +264,22 @@ export function RegisterPrivilegeModal({
           assignedDate: isoShortDate,
           songs,
         }),
-      })
-    } catch {
-      // Email notification is best-effort
+      }).catch(() => {})
     }
 
-    toast({
-      title: 'Privilegio registrado',
-      description: `Tu privilegio de "${currentDefinition.title}" para el ${formattedSpanishDate} fue registrado con éxito.`,
-      variant: 'success',
-    })
+    toast(
+      offline
+        ? {
+            title: 'Guardado solo en este teléfono',
+            description: 'No hay conexión. Vuelve a guardarlo cuando tengas internet para que el equipo lo vea.',
+            variant: 'warning',
+          }
+        : {
+            title: 'Privilegio registrado',
+            description: `"${currentDefinition.title}" para el ${formattedSpanishDate}.`,
+            variant: 'success',
+          }
+    )
     if (backingErrors.length > 0) {
       toast({ title: 'Algunas coristas no se guardaron', description: backingErrors.join(' · '), variant: 'warning' })
     }

@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Calendar, ChevronRight, MapPin, Plus, Clock } from 'lucide-react'
 import { useSupabase } from '@/hooks/use-supabase'
-import { Badge, PageHeader, PageLoader, EmptyState, Fab, SegmentedControl, buttonVariants } from '@/components/ui'
+import { Badge, PageHeader, PageLoader, EmptyState, ErrorState, Fab, SegmentedControl, buttonVariants } from '@/components/ui'
 import { formatTime, getEventTypeColor, getEventTypeLabel, cn } from '@/lib/utils'
 import { formatISOShortDate } from '@/lib/date-helpers'
 import type { EventType } from '@/types'
@@ -54,10 +54,11 @@ export default function AdminEventsPage() {
     query = when === 'upcoming'
       ? query.or(`date.gte.${today},end_date.gte.${today}`).order('date', { ascending: true })
       : query.lt('date', today).or(`end_date.is.null,end_date.lt.${today}`).order('date', { ascending: false }).limit(60)
-    const { data } = await query
+    const { data, error } = await query
+    if (error) throw error
     return (data as EventRow[]) || []
   }, [supabase, when])
-  const { data: events, loading } = useAsyncData<EventRow[]>(load, [])
+  const { data: events, loading, error, reload } = useAsyncData<EventRow[]>(load, [])
 
   const grouped = useMemo(() => {
     const filtered = typeFilter === 'all' ? events : events.filter((e) => e.event_type === typeFilter)
@@ -116,6 +117,8 @@ export default function AdminEventsPage() {
 
       {loading ? (
         <PageLoader />
+      ) : error && events.length === 0 ? (
+        <ErrorState title="No se pudieron cargar los eventos" onRetry={reload} />
       ) : grouped.length === 0 ? (
         <EmptyState
           icon={<Calendar />}

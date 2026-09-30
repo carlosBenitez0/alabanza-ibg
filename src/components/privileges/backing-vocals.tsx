@@ -8,7 +8,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { addBackingVocal, removeBackingVocal } from '@/lib/privilege-storage'
 import { PRIVILEGES_WITH_BACKING_VOCALS, WeeklyPrivilege, isRemotePrivilege } from '@/types/privileges'
 import { Button } from '@/components/ui'
-import { Mic2, LogOut, X } from 'lucide-react'
+import { Mic2, LogOut, X, Undo2 } from 'lucide-react'
 
 /**
  * Backing vocals (coristas) of one privilege: names, plus "join"/"leave" for the
@@ -41,6 +41,35 @@ export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivi
     onChanged()
   }
 
+  // Removing someone else is one tap, so it comes with an undo instead of a confirm dialog
+  const removeOther = async (bv: (typeof vocals)[number]) => {
+    setBusy(bv.id)
+    const error = await removeBackingVocal(supabase, bv.id)
+    setBusy(null)
+    if (error) {
+      toast({ title: 'No se pudo quitar', description: error, variant: 'destructive' })
+      return
+    }
+    onChanged()
+    toast({
+      title: `${bv.profile_name} ya no es corista aquí`,
+      action: (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            const undoError = await addBackingVocal(supabase, privilege.id, bv.profile_id)
+            if (undoError) toast({ title: 'No se pudo deshacer', description: undoError, variant: 'destructive' })
+            onChanged()
+          }}
+        >
+          <Undo2 className="w-4 h-4" />
+          Deshacer
+        </Button>
+      ),
+    })
+  }
+
   if (vocals.length === 0 && !canJoin) return null
 
   return (
@@ -64,9 +93,9 @@ export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivi
                 {canRemove && bv.profile_id !== user?.id ? (
                   <button
                     type="button"
-                    onClick={() => run(bv.id, () => removeBackingVocal(supabase, bv.id), 'Corista quitada')}
+                    onClick={() => removeOther(bv)}
                     disabled={busy !== null}
-                    className="w-7 h-7 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-colors"
+                    className="touch-target sm:min-h-8 sm:min-w-8 -my-2 sm:my-0 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-colors"
                     aria-label={`Quitar a ${bv.profile_name} como corista`}
                   >
                     <X className="w-3.5 h-3.5" />

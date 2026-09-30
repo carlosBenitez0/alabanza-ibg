@@ -35,6 +35,19 @@ export function saveLocalPrivilege(item: WeeklyPrivilege): WeeklyPrivilege[] {
   }
 }
 
+/** Drops the offline copy of one privilege (after it reached the database, or was deleted). */
+export function removeLocalPrivilege(profileId: string, privilegeKey: string, assignedDate: string) {
+  if (typeof window === 'undefined') return
+  try {
+    const remaining = getLocalPrivileges().filter(
+      (p) => !(p.profile_id === profileId && p.privilege_key === privilegeKey && p.assigned_date === assignedDate)
+    )
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(remaining))
+  } catch {
+    // Storage unavailable (private mode): nothing to clean up
+  }
+}
+
 /**
  * Merges Supabase privileges with LocalStorage privileges, removing duplicates.
  */
