@@ -6,7 +6,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
-import { Button, PageHeader, PageLoader, EmptyState } from '@/components/ui'
+import { Button, PageHeader, PageLoader, EmptyState, ErrorState } from '@/components/ui'
 import { Bell, Calendar, Check, CheckCheck, Clock, Music, ChevronRight, Mic2 } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
 
@@ -76,7 +76,7 @@ export default function NotificationsPage() {
     return data || []
   }, [supabase, user])
 
-  const { data: notifications, setData: setNotifications, loading } = useAsyncData<Notification[]>(
+  const { data: notifications, setData: setNotifications, loading, error, reload } = useAsyncData<Notification[]>(
     user ? fetchNotifications : null,
     []
   )
@@ -115,7 +115,9 @@ export default function NotificationsPage() {
         }
       />
 
-      {notifications.length === 0 ? (
+      {error && notifications.length === 0 ? (
+        <ErrorState title="No se pudieron cargar tus avisos" onRetry={reload} />
+      ) : notifications.length === 0 ? (
         <EmptyState
           icon={<Bell />}
           title="No hay notificaciones"

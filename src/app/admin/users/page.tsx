@@ -7,7 +7,7 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useProfile } from '@/components/providers/profile-provider'
 import { useToast } from '@/components/providers/toast-provider'
 import { useSupabase } from '@/hooks/use-supabase'
-import { Badge, Button, Input, Modal, PageHeader, PageLoader, EmptyState } from '@/components/ui'
+import { Badge, Button, Input, Modal, PageHeader, PageLoader, EmptyState, ErrorState } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types'
 import { ROLE_OPTIONS, getInstrumentLabels, getRoleLabel, getRoleWithInstruments } from '@/lib/roles'
@@ -39,10 +39,11 @@ export default function AdminUsersPage() {
   const load = useCallback(async () => {
     const full = await supabase.from('profiles').select('id, full_name, role, phone, instruments').order('full_name')
     if (!full.error) return (full.data as MemberRow[]) || []
-    const { data } = await supabase.from('profiles').select('id, full_name, role, phone').order('full_name')
+    const { data, error } = await supabase.from('profiles').select('id, full_name, role, phone').order('full_name')
+    if (error) throw error
     return (data as MemberRow[]) || []
   }, [supabase])
-  const { data: members, loading, reload } = useAsyncData<MemberRow[]>(load, [])
+  const { data: members, loading, error, reload } = useAsyncData<MemberRow[]>(load, [])
 
   const saveRole = async () => {
     if (!selected || !pendingRole) return
@@ -60,6 +61,7 @@ export default function AdminUsersPage() {
   }
 
   if (loading) return <PageLoader />
+  if (error && members.length === 0) return <ErrorState title="No se pudieron cargar los miembros" onRetry={reload} />
 
   const q = query.trim().toLowerCase()
   const filtered = members.filter(

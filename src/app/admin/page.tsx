@@ -5,7 +5,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle, Badge, PageHeader, PageLoader, EmptyState, buttonVariants } from '@/components/ui'
+import { Card, CardContent, CardHeader, CardTitle, Badge, PageHeader, PageLoader, EmptyState, ErrorState, buttonVariants } from '@/components/ui'
 import { Calendar, Users, Plus, Clock, ClipboardList, ChevronRight, MapPin, UserCog } from 'lucide-react'
 import { formatDate, formatTime, getEventTypeLabel, getEventTypeColor, cn } from '@/lib/utils'
 import { formatISOShortDate } from '@/lib/date-helpers'
@@ -57,6 +57,9 @@ export default function AdminDashboardPage() {
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
       supabase.from('event_assignments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
+    // A zero that is really "couldn't load" would mislead leaders
+    const failed = [allRes, upcomingRes, usersRes, assignmentsRes].find((r) => r.error)
+    if (failed?.error) throw failed.error
 
     return {
       stats: {
@@ -69,8 +72,7 @@ export default function AdminDashboardPage() {
     }
   }, [supabase])
 
-  // On failure stats stay at zero; the page still renders its actions
-  const { data, loading } = useAsyncData(user ? fetchStats : null, {
+  const { data, loading, error, reload } = useAsyncData(user ? fetchStats : null, {
     stats: { totalEvents: 0, upcomingEvents: 0, totalUsers: 0, pendingAssignments: 0 },
     upcoming: [] as AdminEvent[],
   })
@@ -78,6 +80,10 @@ export default function AdminDashboardPage() {
 
   if (authLoading || loading) {
     return <PageLoader />
+  }
+
+  if (error) {
+    return <ErrorState title="No se pudo cargar el panel" onRetry={reload} />
   }
 
   return (

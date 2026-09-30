@@ -7,7 +7,8 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ClipboardList, ChevronRight, Plus } from 'lucide-react'
 import { useSupabase } from '@/hooks/use-supabase'
-import { Modal, PageHeader, PageLoader, EmptyState, buttonVariants } from '@/components/ui'
+import { Modal, PageHeader, PageLoader, EmptyState, ErrorState, buttonVariants } from '@/components/ui'
+import { useToast } from '@/components/providers/toast-provider'
 import {
   ASSIGNMENT_STATUSES,
   StatusBadge,
@@ -43,20 +44,22 @@ function parseLocalDate(iso: string) {
 
 export default function AdminAssignmentsPage() {
   const supabase = useSupabase()
+  const { toast } = useToast()
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [editing, setEditing] = useState<AssignmentRow | null>(null)
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('events')
       .select('id, title, date, event_assignments(id, role, status, profile:profiles(full_name))')
       .gte('date', formatISOShortDate(new Date()))
       .order('date', { ascending: true })
       .limit(30)
+    if (error) throw error
     return (data as EventWithAssignments[]) || []
   }, [supabase])
-  const { data: events, loading, reload } = useAsyncData<EventWithAssignments[]>(load, [])
+  const { data: events, loading, error, reload } = useAsyncData<EventWithAssignments[]>(load, [])
 
   const counts = useMemo(() => {
     const all = events.flatMap((e) => e.event_assignments)
@@ -70,16 +73,22 @@ export default function AdminAssignmentsPage() {
 
   const changeStatus = async (assignment: AssignmentRow, status: AssignmentStatus) => {
     setSaving(true)
-    await supabase
+    const { error: updateError } = await supabase
       .from('event_assignments')
       .update({ status, confirmed_at: status === 'confirmed' ? new Date().toISOString() : null })
       .eq('id', assignment.id)
     setSaving(false)
+    if (updateError) {
+      toast({ title: 'No se pudo cambiar el estado', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: `${nameOf(assignment)}: ${getAssignmentStatusLabel(status).toLowerCase()}`, variant: 'success' })
     setEditing(null)
     reload()
   }
 
   if (loading) return <PageLoader />
+  if (error && events.length === 0) return <ErrorState title="No se pudieron cargar las asignaciones" onRetry={reload} />
 
   const filters: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: `Todas (${counts.all})` },

@@ -238,30 +238,42 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
       tablature_content: tabContent.trim() || null,
     }
 
-    saveLocalSong(updatedSong)
-
-    try {
-      if (song.id && !song.id.startsWith('def_') && !song.id.startsWith('song_')) {
-        await supabase
+    // Songs that only exist on this device (created offline) can't reach the database
+    const localOnly = !song.id || song.id.startsWith('def_') || song.id.startsWith('song_')
+    let result: 'saved' | 'offline' | 'error' = localOnly ? 'offline' : 'saved'
+    if (!localOnly) {
+      try {
+        const { error } = await supabase
           .from('songs')
           .update({
             has_tablature: Boolean(tabContent.trim()),
             tablature_content: tabContent.trim() || null,
           })
           .eq('id', song.id)
+        if (error) result = 'error'
+      } catch {
+        result = 'offline'
       }
-    } catch {
-      // Quiet fallback
-    } finally {
-      toast({
-        title: 'Tablatura guardada',
-        description: `Se han guardado los acordes/tablatura para "${song.title}".`,
-        variant: 'success',
-      })
-      setIsEditing(false)
-      onSuccess()
-      setLoading(false)
     }
+    setLoading(false)
+
+    if (result === 'error') {
+      toast({ title: 'No se pudo guardar la tablatura', description: 'Tus cambios siguen aquí. Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+
+    saveLocalSong(updatedSong)
+    toast(
+      result === 'saved'
+        ? { title: 'Tablatura guardada', description: `"${song.title}" ya tiene sus acordes para todo el equipo.`, variant: 'success' }
+        : {
+            title: 'Guardada solo en este dispositivo',
+            description: 'No se pudo enviar al servidor. El resto del equipo no la verá hasta guardarla con conexión.',
+            variant: 'warning',
+          }
+    )
+    setIsEditing(false)
+    onSuccess()
   }
 
   const toolButton =

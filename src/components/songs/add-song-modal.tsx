@@ -34,49 +34,54 @@ export function AddSongModal({ isOpen, onClose, onSuccess }: AddSongModalProps) 
     const newTitle = title.trim()
     const parsedBpm = bpm ? parseInt(bpm, 10) : null
 
-    const newSongRecord = {
-      id: `song_${Date.now()}`,
-      title: newTitle,
-      default_key: defaultKey,
-      bpm: parsedBpm,
-      notes: notes.trim() || undefined,
-      created_at: new Date().toISOString(),
-    }
-
-    // Save locally for instant availability
-    saveLocalSong(newSongRecord)
-
+    let offline = false
     try {
-      await supabase.from('songs').insert({
+      const { error } = await supabase.from('songs').insert({
         title: newTitle,
         default_key: defaultKey,
+        bpm: parsedBpm,
+        notes: notes.trim() || null,
       })
-    } catch {
-      // Quiet fallback
-    }
-
-    // Notify all users about the new song (safe to ignore failures)
-    if (user?.id) {
-      try {
-        await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'new_song',
-            authorId: user.id,
-            songTitle: newTitle,
-          }),
-        })
-      } catch {
-        // Email notification is best-effort
+      if (error) {
+        setLoading(false)
+        toast(
+          error.code === '23505'
+            ? { title: 'Esa alabanza ya existe', description: `"${newTitle}" ya está en el repertorio. Búscala en la lista.`, variant: 'warning' }
+            : { title: 'No se pudo agregar la alabanza', description: 'Inténtalo de nuevo en un momento.', variant: 'destructive' }
+        )
+        return
       }
+    } catch {
+      offline = true
     }
 
-    toast({
-      title: 'Alabanza agregada',
-      description: `"${newTitle}" ha sido añadida al repertorio del ministerio.`,
-      variant: 'success',
-    })
+    if (offline) {
+      // Keep it on this device so the work isn't lost, and say so
+      saveLocalSong({
+        id: `song_${Date.now()}`,
+        title: newTitle,
+        default_key: defaultKey,
+        bpm: parsedBpm,
+        created_at: new Date().toISOString(),
+      })
+    } else if (user?.id) {
+      // Notify all users about the new song (best-effort)
+      fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'new_song', authorId: user.id, songTitle: newTitle }),
+      }).catch(() => {})
+    }
+
+    toast(
+      offline
+        ? {
+            title: 'Guardada solo en este dispositivo',
+            description: 'No hay conexión. Agrégala de nuevo cuando tengas internet para que el equipo la vea.',
+            variant: 'warning',
+          }
+        : { title: 'Alabanza agregada', description: `"${newTitle}" ya está en el repertorio.`, variant: 'success' }
+    )
     setTitle('')
     setBpm('')
     setNotes('')
