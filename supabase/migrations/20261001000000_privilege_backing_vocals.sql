@@ -2,7 +2,8 @@
 -- Backing vocals (coristas) inside a singer's privilege
 --
 -- Requires 20260930000000_permissions_and_notifications.sql (public.is_leader).
---   1. A member can be a backing vocal in someone else's singing privilege.
+--   1. A member can be a backing vocal in someone else's singing or
+--      rehearsal privilege.
 --      The role is per privilege: profiles.role does not change.
 --   2. They can join by themselves, or the privilege owner (or a leader)
 --      can add them. The same people can remove them.
@@ -56,7 +57,7 @@ CREATE POLICY "Salir o quitar coristas" ON public.privilege_backing_vocals
     OR public.is_leader(auth.uid())
   );
 
--- Only singing privileges take backing vocals, and never the owner themselves
+-- Only singing and rehearsal privileges take backing vocals, and never the owner themselves
 CREATE OR REPLACE FUNCTION public.validate_backing_vocal()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -70,8 +71,8 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'El privilegio no existe';
   END IF;
-  IF priv.privilege_key NOT IN ('saturday_musician', 'sunday_lead_vocal') THEN
-    RAISE EXCEPTION 'Solo los privilegios de cantar alabanzas admiten coristas';
+  IF priv.privilege_key NOT IN ('saturday_musician', 'sunday_lead_vocal', 'sunday_rehearsal') THEN
+    RAISE EXCEPTION 'Solo los privilegios de cantar alabanzas y de ensayo admiten coristas';
   END IF;
   IF priv.profile_id = NEW.profile_id THEN
     RAISE EXCEPTION 'No puedes ser corista de tu propio privilegio';
