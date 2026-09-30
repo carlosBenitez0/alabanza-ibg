@@ -10,7 +10,7 @@ import { CatalogSong } from '@/types/privileges'
 import { getLocalSongs, mergeSongs } from '@/lib/song-storage'
 import { AddSongModal } from '@/components/songs/add-song-modal'
 import { TablatureModal } from '@/components/songs/tablature-modal'
-import { ALL_MUSIC_KEYS } from '@/components/privileges/song-autocomplete'
+import { ALL_MUSIC_KEYS } from '@/lib/music-keys'
 import { Button, Badge, Input, PageHeader, PageLoader, EmptyState, Fab } from '@/components/ui'
 import { Music, Search, Plus, Music2, Activity, FileText, ChevronRight } from 'lucide-react'
 import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
@@ -32,7 +32,7 @@ function SongDeepLink({
 }: {
   songs: CatalogSong[]
   loading: boolean
-  onOpen: (song: CatalogSong) => void
+  onOpen: (song: CatalogSong, key?: string | null) => void
 }) {
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -49,9 +49,9 @@ function SongDeepLink({
       (songId && songs.find((s) => s.id === songId)) ||
       (wanted && songs.find((s) => normalizeSongTitle(s.title) === wanted)) ||
       null
-    if (song) onOpen(song)
+    if (song) onOpen(song, searchParams.get('key'))
     else toast({ title: 'No se encontró la alabanza', description: 'Puede que se haya eliminado del catálogo.', variant: 'warning' })
-  }, [request, loading, songs, songId, title, onOpen, toast])
+  }, [request, loading, songs, songId, title, onOpen, toast, searchParams])
 
   return null
 }
@@ -63,6 +63,7 @@ export default function SongsPage() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedTabSong, setSelectedTabSong] = useState<CatalogSong | null>(null)
+  const [tabKey, setTabKey] = useState<string | null>(null)
   const [isTabModalOpen, setIsTabModalOpen] = useState(false)
 
   const headerRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.5 })
@@ -79,7 +80,8 @@ export default function SongsPage() {
   }, [supabase])
   const { data: songs, loading, reload: fetchSongs } = useAsyncData<CatalogSong[]>(loadSongs, [])
 
-  const handleOpenTabModal = (song: CatalogSong) => {
+  const handleOpenTabModal = (song: CatalogSong, key?: string | null) => {
+    setTabKey(key ?? null)
     setSelectedTabSong(song)
     setIsTabModalOpen(true)
   }
@@ -100,6 +102,7 @@ export default function SongsPage() {
       <AddSongModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={fetchSongs} />
       <TablatureModal
         song={selectedTabSong}
+        initialKey={tabKey}
         isOpen={isTabModalOpen}
         onClose={handleCloseTabModal}
         onSuccess={fetchSongs}
