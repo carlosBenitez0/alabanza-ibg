@@ -263,6 +263,14 @@ function LoginPageContent() {
               autoComplete="current-password"
               required
             />
+            <div className="-mt-2 flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="inline-flex items-center min-h-11 px-1 text-sm text-[var(--text-secondary)] underline-offset-4 hover:underline hover:text-[var(--text-primary)] transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
 
             <Button
               type="submit"

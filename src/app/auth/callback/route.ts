@@ -15,9 +15,15 @@ export async function GET(request: NextRequest) {
   const next = safeRedirect(searchParams.get('next'))
   const errorCode = searchParams.get('error_code') || searchParams.get('error')
 
-  if (errorCode) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorCode)}`)
-  }
+  // A failed recovery link sends the user back to request a new one
+  const failed = (reason: string) =>
+    NextResponse.redirect(
+      next === '/reset-password'
+        ? `${origin}/forgot-password?expired=1`
+        : `${origin}/login?error=${encodeURIComponent(reason)}`
+    )
+
+  if (errorCode) return failed(errorCode)
 
   const supabase = await createClient()
   const code = searchParams.get('code')
@@ -29,8 +35,10 @@ export async function GET(request: NextRequest) {
     if (!error) return NextResponse.redirect(`${origin}${next}`)
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
-    if (!error) return NextResponse.redirect(`${origin}${next}`)
+    // Recovery links from the default email template carry no `next`
+    const target = type === 'recovery' ? '/reset-password' : next
+    if (!error) return NextResponse.redirect(`${origin}${target}`)
   }
 
-  return NextResponse.redirect(`${origin}/login?error=otp_expired`)
+  return failed('otp_expired')
 }

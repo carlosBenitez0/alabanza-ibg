@@ -42,8 +42,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isAuthRoute =
+    pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password')
   const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
+
+  // /reset-password needs the recovery session created by /auth/callback
+  if (!user && pathname.startsWith('/reset-password')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/forgot-password'
+    url.search = '?expired=1'
+    return NextResponse.redirect(url)
+  }
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()

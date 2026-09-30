@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getAuthErrorMessage } from "@/lib/utils";
+import { passwordSchema } from "@/lib/password";
+import { PasswordChecklist } from "@/components/auth/auth-card";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,8 +20,6 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Check,
-  X,
 } from "lucide-react";
 import { useGsapMountReveal } from "@/hooks/use-gsap-reveal";
 
@@ -34,12 +34,7 @@ const registerSchema = z
       .trim()
       .min(1, "El email es requerido")
       .email("Ingresa un correo electrónico válido"),
-    password: z
-      .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres")
-      .regex(/[A-Z]/, "Debe incluir al menos una letra mayúscula")
-      .regex(/[a-z]/, "Debe incluir al menos una letra minúscula")
-      .regex(/[0-9]/, "Debe incluir al menos un número"),
+    password: passwordSchema,
     confirmPassword: z.string().min(1, "Confirma tu contraseña"),
     phone: z
       .string()
@@ -90,12 +85,6 @@ export default function RegisterPage() {
   // Real-time password criteria state
   const password = useWatch({ control, name: "password" }) || "";
 
-  const passwordCriteria = [
-    { label: "Mínimo 8 caracteres", met: password.length >= 8 },
-    { label: "Una letra mayúscula (A-Z)", met: /[A-Z]/.test(password) },
-    { label: "Una letra minúscula (a-z)", met: /[a-z]/.test(password) },
-    { label: "Un número (0-9)", met: /[0-9]/.test(password) },
-  ];
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
@@ -216,35 +205,7 @@ export default function RegisterPage() {
                 required
               />
 
-              {/* Password Requirements Live Checklist */}
-              <div className="mt-2.5 p-3 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
-                <p className="text-caption font-mono text-[var(--text-tertiary)] uppercase tracking-wider mb-1">
-                  Requisitos de contraseña:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {passwordCriteria.map((c, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-1.5 text-sm sm:text-xs"
-                    >
-                      {c.met ? (
-                        <Check className="w-3.5 h-3.5 text-[var(--color-success)] flex-shrink-0" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
-                      )}
-                      <span
-                        className={
-                          c.met
-                            ? "text-[var(--color-success)] font-medium"
-                            : "text-[var(--text-tertiary)]"
-                        }
-                      >
-                        {c.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PasswordChecklist password={password} />
             </div>
 
             {/* Confirm Password */}
