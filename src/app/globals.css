@@ -133,7 +133,10 @@
 
 /* ─────────────────────────────────────────
    BASE STYLES
+   Inside @layer base so Tailwind utilities (text-*, border-*)
+   can override them; unlayered rules would always win.
 ───────────────────────────────────────── */
+@layer base {
 *,
 *::before,
 *::after {
@@ -204,6 +207,7 @@ a {
   color: inherit;
   text-decoration: none;
 }
+} /* @layer base */
 
 /* ─────────────────────────────────────────
    ANIMATIONS — GSAP-ready defaults
