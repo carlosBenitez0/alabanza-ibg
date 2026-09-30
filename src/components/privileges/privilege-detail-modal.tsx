@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS } from '@/types/privileges'
+import { songViewerHref } from '@/lib/song-links'
 import { formatFullSpanishDate } from '@/lib/date-helpers'
 import { Button, Badge, Modal } from '@/components/ui'
 import { Calendar, Guitar, Mic, Users, Music, UserCheck, FileText } from 'lucide-react'
@@ -70,19 +72,23 @@ export function PrivilegeDetailModal({ privilege, isOpen, onClose }: PrivilegeDe
           {privilege.songs && privilege.songs.length > 0 ? (
             <ol className="space-y-2">
               {privilege.songs.map((song, idx) => (
-                <li
-                  key={idx}
-                  className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between gap-3 text-sm"
-                >
-                  <span className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono text-[var(--text-tertiary)] w-5 shrink-0">{idx + 1}.</span>
-                    <span className="font-medium break-words">{song.title}</span>
-                  </span>
-                  {song.key && (
-                    <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
-                      Tono: {song.key}
+                <li key={idx}>
+                  <Link
+                    href={songViewerHref(song)}
+                    onClick={onClose}
+                    className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-3 text-sm"
+                    aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-[var(--text-tertiary)] w-5 shrink-0">{idx + 1}.</span>
+                      <span className="font-medium break-words">{song.title}</span>
                     </span>
-                  )}
+                    {song.key && (
+                      <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
+                        Tono: {song.key}
+                      </span>
+                    )}
+                  </Link>
                 </li>
               ))}
             </ol>

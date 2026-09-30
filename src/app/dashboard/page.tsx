@@ -8,6 +8,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
 import { getWeekBounds, formatFullSpanishDate, formatISOShortDate } from '@/lib/date-helpers'
 import { fetchPrivileges, orderUserPrivileges } from '@/lib/privilege-storage'
+import { songViewerHref } from '@/lib/song-links'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { Card, CardContent, CardHeader, Button, Badge, PageHeader, PageLoader, EmptyState, Fab, buttonVariants } from '@/components/ui'
 import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil } from 'lucide-react'
@@ -250,18 +251,21 @@ function MyPrivilegeCard({
           {privilege.songs && privilege.songs.length > 0 ? (
             <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {privilege.songs.map((song, sIdx) => (
-                <li
-                  key={sIdx}
-                  className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] flex items-center justify-between gap-2 text-sm border bg-[var(--bg-surface)] border-[var(--border-subtle)]"
-                >
-                  <span className="font-medium min-w-0 truncate">
-                    {sIdx + 1}. {song.title}
-                  </span>
-                  {song.key && (
-                    <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
-                      Tono: {song.key}
+                <li key={sIdx}>
+                  <Link
+                    href={songViewerHref(song)}
+                    className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] flex items-center justify-between gap-2 text-sm border bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors"
+                    aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
+                  >
+                    <span className="font-medium min-w-0 truncate">
+                      {sIdx + 1}. {song.title}
                     </span>
-                  )}
+                    {song.key && (
+                      <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
+                        Tono: {song.key}
+                      </span>
+                    )}
+                  </Link>
                 </li>
               ))}
             </ol>
