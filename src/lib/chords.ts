@@ -9,9 +9,11 @@ const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#',
 const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 const NATURAL: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
 
-// Root, quality (m, maj7, sus4, dim, aug, add9, 7, 9, 11, 13, °, ø, +, (b9)...), optional slash bass
-const CHORD_RE =
-  /^([A-G])([#b]?)((?:maj|min|dim|aug|sus|add|m|M|°|º|ø|\+|-|#|b|\d|\((?:[#b+-]?\d+,?)+\))*)(?:\/([A-G])([#b]?))?$/
+// Root, quality (m, maj7, Maj7, sus4, dim, aug, add9, 6/9, 7, 9, 11, 13, °, ø, +, (b9), (add9), (maj7)...),
+// optional slash bass. "/9" in 6/9 is part of the quality; "/B" is a bass note.
+const QUALITY_TOKEN = String.raw`maj|Maj|min|dim|aug|sus|add|m|M|°|º|ø|\+|-|#|b|\d|\/\d+`
+const PAREN_GROUP = String.raw`\((?:maj|Maj|min|dim|aug|sus|add|m|M|[#b+-]|\d|,)+\)`
+const CHORD_RE = new RegExp(String.raw`^([A-G])([#b]?)((?:${QUALITY_TOKEN}|${PAREN_GROUP})*)(?:\/([A-G])([#b]?))?$`)
 
 // Tokens that may sit on a chord line without making it a lyric line
 const FILLER_RE = /^(?:\|+|:?\|\|?:?|-+|\/+|\.+|\*+|%|x\d+|\(x?\d+\)|n\.?c\.?|[A-Za-zÁÉÍÓÚáéíóúÑñ]+\s*\d*:)$/i
@@ -29,8 +31,19 @@ export function isChord(token: string): boolean {
 
 /** Strips wrapping punctuation like "(C)", "[G]" or "Am," around a chord. */
 function splitWrapped(token: string): { pre: string; core: string; post: string } {
-  const m = /^([([]*)(.*?)([)\],]*)$/.exec(token)!
-  return { pre: m[1], core: m[2], post: m[3] }
+  const pre = /^[([]*/.exec(token)![0]
+  let core = token.slice(pre.length)
+  let post = ''
+  const count = (s: string, ch: string) => s.split(ch).length - 1
+  // Only strip a ")" that closes a wrapper, never the one of "F(add9)"
+  while (core) {
+    const last = core[core.length - 1]
+    const wrapperParen = last === ')' && count(core, ')') > count(core, '(')
+    if (last !== ',' && last !== ']' && !wrapperParen) break
+    post = last + post
+    core = core.slice(0, -1)
+  }
+  return { pre, core, post }
 }
 
 function isChordToken(token: string): boolean {
