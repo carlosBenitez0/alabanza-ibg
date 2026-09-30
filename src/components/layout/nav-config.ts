@@ -25,7 +25,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Mi Panel', short: 'Panel', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Tabla de la Semana', short: 'Semana', href: '/dashboard/weekly-schedule', icon: ListMusic },
   { name: 'Repertorio', short: 'Repertorio', href: '/dashboard/songs', icon: Music },
-  { name: 'Mis Eventos', href: '/dashboard/events', icon: Calendar },
+  { name: 'Mi Calendario', short: 'Calendario', href: '/dashboard/events', icon: Calendar },
   { name: 'Equipo', href: '/dashboard/users', icon: Users },
   { name: 'Notificaciones', short: 'Avisos', href: '/dashboard/notifications', icon: Bell, badge: true },
   { name: 'Mi Perfil', href: '/dashboard/profile', icon: Settings },
@@ -54,7 +54,7 @@ export function isNavActive(pathname: string, href: string) {
 const titleOverrides: { match: RegExp; title: string }[] = [
   { match: /^\/admin\/events\/new$/, title: 'Nuevo Evento' },
   { match: /^\/admin\/events\/[^/]+$/, title: 'Editar Evento' },
-  { match: /^\/dashboard\/events\/[^/]+$/, title: 'Detalle del Evento' },
+  { match: /^\/dashboard\/events\/[^/]+$/, title: 'Evento especial' },
 ]
 
 /** Title for the compact phone header */
