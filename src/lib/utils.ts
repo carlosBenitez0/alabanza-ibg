@@ -132,6 +132,11 @@ export function getAuthErrorMessage(message: string): string {
   if (message.includes('Invalid login credentials')) return 'Credenciales incorrectas (email o contraseña no válidos)'
   if (message.includes('Email not confirmed')) return 'Tu correo aún no está confirmado. Revisa tu bandeja de entrada.'
   if (message.includes('User already registered')) return 'Este email ya está registrado'
+  if (/email rate limit/i.test(message)) {
+    return 'Se alcanzó el límite de correos por hora del servidor. Espera alrededor de una hora e inténtalo de nuevo, o avisa al administrador.'
+  }
+  const wait = message.match(/after (\d+) seconds?/i)
+  if (wait) return `Por seguridad, espera ${wait[1]} segundos antes de pedir otro correo.`
   if (/rate limit|too many/i.test(message)) return 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'
   return message
 }
