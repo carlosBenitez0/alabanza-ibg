@@ -4,9 +4,12 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, EmptyState, SegmentedControl } from '@/components/ui'
-import { Calendar, ChevronLeft, ChevronRight, Eye, List, ChevronRight as Chevron } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, EmptyState, ErrorState, SegmentedControl } from '@/components/ui'
+import { Calendar, ChevronLeft, ChevronRight, Eye, List, PartyPopper, ChevronRight as Chevron } from 'lucide-react'
+import { cn, getEventTypeLabel } from '@/lib/utils'
+import { StatusBadge, getAssignmentRoleLabel } from '@/components/admin/assignment-status'
+import type { AssignmentRole, AssignmentStatus } from '@/types'
 import {
   format,
   startOfMonth,
@@ -27,6 +30,26 @@ import { PrivilegeDetailModal } from '@/components/privileges/privilege-detail-m
 
 const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
+interface MyEventRow {
+  id: string
+  role: AssignmentRole
+  status: AssignmentStatus
+  event: {
+    id: string
+    title: string
+    date: string
+    end_date: string | null
+    event_type: string
+    start_time: string | null
+    location: string | null
+  } | null
+}
+
+const parseISODate = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 export default function EventsPage() {
   const { user, loading: authLoading } = useAuth()
   const supabase = useSupabase()
@@ -38,8 +61,25 @@ export default function EventsPage() {
   const [selectedPrivilege, setSelectedPrivilege] = useState<WeeklyPrivilege | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
+  // "Míos" by default: the member's own privileges and the ones they sing backing vocals in
+  const [scope, setScope] = useState<'mine' | 'all'>('mine')
+
   const load = useCallback(() => fetchPrivileges(supabase), [supabase])
-  const { data: privileges, loading } = useAsyncData<WeeklyPrivilege[]>(user ? load : null, [])
+  const { data: allPrivileges, loading } = useAsyncData<WeeklyPrivilege[]>(user ? load : null, [])
+
+  const loadMyEvents = useCallback(async (): Promise<MyEventRow[]> => {
+    const { data, error } = await supabase
+      .from('event_assignments')
+      .select('id, role, status, event:events(id, title, date, end_date, event_type, start_time, location)')
+      .eq('profile_id', user?.id)
+    if (error) throw error
+    const today = format(new Date(), 'yyyy-MM-dd')
+    return ((data || []) as unknown as MyEventRow[])
+      .map((row) => ({ ...row, event: Array.isArray(row.event) ? row.event[0] : row.event }))
+      .filter((row) => row.event && (row.event.end_date ?? row.event.date) >= today)
+      .sort((a, b) => a.event!.date.localeCompare(b.event!.date))
+  }, [supabase, user?.id])
+  const myEvents = useAsyncData<MyEventRow[]>(user ? loadMyEvents : null, [])
 
   const handleOpenDetail = (privilege: WeeklyPrivilege) => {
     setSelectedPrivilege(privilege)
@@ -49,6 +89,13 @@ export default function EventsPage() {
   if (authLoading || loading) {
     return <PageLoader />
   }
+
+  const privileges =
+    scope === 'all'
+      ? allPrivileges
+      : allPrivileges.filter(
+          (p) => p.profile_id === user?.id || p.backing_vocals?.some((bv) => bv.profile_id === user?.id)
+        )
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -77,21 +124,77 @@ export default function EventsPage() {
         onClose={() => setIsDetailModalOpen(false)}
       />
 
-      <PageHeader
-        title="Mis Eventos y Privilegios"
-        description="Histórico y calendario de privilegios de Sábados y Domingos."
-        actions={
+      <PageHeader title="Mi calendario" description="Tus eventos especiales y tus privilegios de sábado y domingo." />
+
+      <section className="space-y-3" aria-labelledby="my-events-title">
+        <h2 id="my-events-title" className="text-base font-bold flex items-center gap-2">
+          <PartyPopper className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+          Eventos especiales
+        </h2>
+        {myEvents.loading ? (
+          <div className="h-16 rounded-[var(--radius-lg)] skeleton" aria-hidden="true" />
+        ) : myEvents.error ? (
+          <ErrorState title="No se pudieron cargar tus eventos" onRetry={myEvents.reload} />
+        ) : myEvents.data.length === 0 ? (
+          <p className="text-sm text-[var(--text-tertiary)]">
+            No tienes eventos especiales próximos. Cuando un líder te asigne a un campamento o a una invitación, aparecerá aquí.
+          </p>
+        ) : (
+          <ul className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-raised)] divide-y divide-[var(--border-subtle)] overflow-hidden">
+            {myEvents.data.map(({ id, role, status, event }) => (
+              <li key={id}>
+                <Link
+                  href={`/dashboard/events/${event!.id}`}
+                  className="flex items-center gap-3 min-h-16 px-3 sm:px-4 py-3 hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors"
+                >
+                  <span className="w-12 shrink-0 text-center rounded-[var(--radius-md)] border border-[var(--border-normal)] bg-[var(--bg-surface)] py-1">
+                    <span className="block text-caption font-mono uppercase text-[var(--text-tertiary)]">
+                      {format(parseISODate(event!.date), 'MMM', { locale: es })}
+                    </span>
+                    <span className="block text-lg font-bold leading-tight font-mono">{format(parseISODate(event!.date), 'd')}</span>
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-semibold truncate">{event!.title}</span>
+                    <span className="block text-xs text-[var(--text-tertiary)] truncate">
+                      {getEventTypeLabel(event!.event_type)} · {getAssignmentRoleLabel(role)}
+                      {event!.location ? ` · ${event!.location}` : ''}
+                    </span>
+                  </span>
+                  <StatusBadge status={status} />
+                  <Chevron className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <h2 className="text-base font-bold flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+          Privilegios
+        </h2>
+        <div className="flex flex-col min-[420px]:flex-row gap-2">
+          <SegmentedControl
+            label="Mostrar"
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: 'mine', label: 'Míos' },
+              { value: 'all', label: 'Todo el equipo' },
+            ]}
+          />
           <SegmentedControl
             label="Vista"
             value={view}
             onChange={setView}
             options={[
-              { value: 'calendar', label: 'Calendario', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
+              { value: 'calendar', label: 'Mes', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
               { value: 'list', label: 'Lista', icon: <List className="w-4 h-4" aria-hidden="true" /> },
             ]}
           />
-        }
-      />
+        </div>
+      </div>
 
       {view === 'calendar' ? (
         <Card className="border-[var(--border-normal)] bg-[var(--bg-raised)] overflow-hidden">
@@ -130,7 +233,7 @@ export default function EventsPage() {
           </CardContent>
         </Card>
       ) : (
-        <ListView privileges={privileges} onSelectPrivilege={handleOpenDetail} />
+        <ListView privileges={privileges} onSelectPrivilege={handleOpenDetail} mine={scope === 'mine'} />
       )}
     </div>
   )
@@ -302,16 +405,22 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
 function ListView({
   privileges,
   onSelectPrivilege,
+  mine,
 }: {
   privileges: WeeklyPrivilege[]
   onSelectPrivilege: (privilege: WeeklyPrivilege) => void
+  mine: boolean
 }) {
   if (privileges.length === 0) {
     return (
       <EmptyState
         icon={<Calendar />}
-        title="No hay privilegios registrados en el historial"
-        description="Cuando los miembros registren privilegios para los Sábados o Domingos, aparecerán aquí."
+        title={mine ? 'Aún no tienes privilegios registrados' : 'No hay privilegios registrados'}
+        description={
+          mine
+            ? 'Regístrate en la tabla semanal o únete como corista al privilegio de alguien.'
+            : 'Cuando el equipo registre privilegios para sábado o domingo, aparecerán aquí.'
+        }
       />
     )
   }

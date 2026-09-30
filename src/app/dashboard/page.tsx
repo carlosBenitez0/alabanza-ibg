@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 const quickLinks = [
   { href: '/dashboard/weekly-schedule', label: 'Tabla Semanal Completa', icon: ListMusic },
   { href: '/dashboard/songs', label: 'Repertorio de Alabanzas', icon: Music2 },
-  { href: '/dashboard/events', label: 'Mis Eventos Históricos', icon: Calendar },
+  { href: '/dashboard/events', label: 'Mi Calendario', icon: Calendar },
 ]
 
 export default function DashboardPage() {

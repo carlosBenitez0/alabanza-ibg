@@ -99,7 +99,7 @@ export default function EventDetailPage() {
         description="Puede que haya sido eliminado o que el enlace sea incorrecto."
         action={
           <Link href="/dashboard/events" className={buttonVariants({ fullWidthMobile: true })}>
-            Ver mis eventos
+            Ver mi calendario
           </Link>
         }
       />
@@ -114,7 +114,7 @@ export default function EventDetailPage() {
     <div className="space-y-6 max-w-3xl">
       <Link href="/dashboard/events" className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-3' })}>
         <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-        Mis eventos
+        Mi calendario
       </Link>
 
       <PageHeader
