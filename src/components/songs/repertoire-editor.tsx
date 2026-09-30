@@ -1,10 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { gsap } from 'gsap'
+import { Flip } from 'gsap/Flip'
 import { SongAutocomplete } from '@/components/privileges/song-autocomplete'
 import { sameModeKeys } from '@/lib/chords'
+import { DURATION, EASE, prefersReducedMotion } from '@/lib/motion'
 import type { PrivilegeSongItem } from '@/types/privileges'
 import { ArrowDown, ArrowUp, Music, Trash2 } from 'lucide-react'
+
+gsap.registerPlugin(Flip)
 
 const iconButton =
   'touch-target sm:min-h-8 sm:min-w-8 flex items-center justify-center rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0'
@@ -38,10 +43,30 @@ export function RepertoireEditor({
     if (songs.length !== ids.length) setIds(songs.map(newUid))
   }
 
+  // Rows glide to their new place (FLIP): record where they are, change the list,
+  // then animate from the old positions once React has rendered the new order
+  const listRef = useRef<HTMLOListElement>(null)
+  const flipState = useRef<Flip.FlipState | null>(null)
+  const animate = !prefersReducedMotion()
+
   const commit = (nextSongs: PrivilegeSongItem[], nextIds: string[]) => {
+    if (animate && listRef.current) flipState.current = Flip.getState(listRef.current.children)
     setIds(nextIds)
     onChange(nextSongs)
   }
+
+  useLayoutEffect(() => {
+    const state = flipState.current
+    if (!state || !listRef.current) return
+    flipState.current = null
+    Flip.from(state, {
+      targets: listRef.current.children,
+      duration: DURATION.slow,
+      ease: EASE.inOut,
+      // A newly added row arrives from just above its slot
+      onEnter: (els) => gsap.fromTo(els, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: DURATION.base, ease: EASE.out }),
+    })
+  }, [ids])
 
   const move = (from: number, to: number) => {
     const nextSongs = [...songs]
@@ -53,11 +78,17 @@ export function RepertoireEditor({
     commit(nextSongs, nextIds)
   }
 
-  const remove = (idx: number) =>
-    commit(
-      songs.filter((_, i) => i !== idx),
-      ids.filter((_, i) => i !== idx)
-    )
+  const remove = (idx: number) => {
+    const apply = () =>
+      commit(
+        songs.filter((_, i) => i !== idx),
+        ids.filter((_, i) => i !== idx)
+      )
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-flip-id="${ids[idx]}"]`)
+    if (!animate || !row) return apply()
+    // The removed row slides out first; then the rest close the gap
+    gsap.to(row, { opacity: 0, x: -16, duration: DURATION.fast, ease: EASE.in, onComplete: apply })
+  }
 
   const add = (song: PrivilegeSongItem) => commit([...songs, song], [...ids, newUid()])
 
@@ -73,11 +104,11 @@ export function RepertoireEditor({
           {emptyText}
         </p>
       ) : (
-        <ol className="space-y-2">
+        <ol ref={listRef} className="space-y-2">
           {songs.map((song, idx) => (
             <li
               key={ids[idx] ?? idx}
-              data-row-id={ids[idx]}
+              data-flip-id={ids[idx]}
               className="p-2.5 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3"
             >
               <span className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">

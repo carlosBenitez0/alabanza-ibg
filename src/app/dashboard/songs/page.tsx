@@ -66,8 +66,9 @@ export default function SongsPage() {
   const [tabKey, setTabKey] = useState<string | null>(null)
   const [isTabModalOpen, setIsTabModalOpen] = useState(false)
 
-  const headerRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.5 })
-  const gridRef = useGsapReveal<HTMLUListElement>({ selector: '.song-card-item', stagger: 0.05 })
+  const headerRef = useGsapMountReveal<HTMLDivElement>()
+  // watch: songs that appear while searching slide in too
+  const gridRef = useGsapReveal<HTMLUListElement>({ selector: '.song-card-item', watch: true })
 
   const loadSongs = useCallback(async (): Promise<CatalogSong[]> => {
     try {
@@ -142,7 +143,7 @@ export default function SongsPage() {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <PageLoader variant="list" rows={6} />
       ) : filteredSongs.length === 0 ? (
         <EmptyState
           icon={<Music />}

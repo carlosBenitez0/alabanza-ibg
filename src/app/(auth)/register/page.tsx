@@ -65,11 +65,7 @@ export default function RegisterPage() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
-  const cardRef = useGsapMountReveal<HTMLDivElement>({
-    from: "bottom",
-    duration: 0.6,
-    yOffset: 30,
-  });
+  const cardRef = useGsapMountReveal<HTMLDivElement>({ yOffset: 12 });
 
   const {
     register,

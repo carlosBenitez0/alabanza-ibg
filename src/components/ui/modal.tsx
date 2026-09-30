@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useEffect, useId, useRef } from 'react'
+import { ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -72,6 +72,17 @@ export function Modal({
 
   useBodyScrollLock(isOpen)
 
+  // Stay mounted while the exit animation plays, then unmount
+  const [present, setPresent] = useState(isOpen)
+  if (isOpen && !present) setPresent(true)
+  const closing = present && !isOpen
+  useEffect(() => {
+    if (!closing) return
+    // Safety net in case animationend never fires (tab hidden, element detached)
+    const fallback = setTimeout(() => setPresent(false), 400)
+    return () => clearTimeout(fallback)
+  }, [closing])
+
   useEffect(() => {
     if (!isOpen) return
     const previouslyFocused = document.activeElement as HTMLElement | null
@@ -110,26 +121,40 @@ export function Modal({
     }
   }, [isOpen])
 
-  if (!isOpen || typeof document === 'undefined') return null
+  if (!present || typeof document === 'undefined') return null
 
   const isFull = fullscreen
   const danger = tone === 'danger'
 
+  // Enter: sheet rises on phones, dialog scales in from `sm`. Exit mirrors it, faster.
+  const panelMotion = closing
+    ? isFull || fullscreenMobile
+      ? 'animate-fade-out'
+      : 'animate-sheet-down sm:animate-scale-out'
+    : isFull || fullscreenMobile
+      ? 'animate-fade-in sm:animate-scale-in'
+      : 'animate-sheet-up sm:animate-scale-in'
+
   return createPortal(
     <div
       className={cn(
-        'fixed inset-0 z-[500] flex animate-fade-in',
+        'fixed inset-0 z-[500] flex',
+        closing ? 'animate-fade-out pointer-events-none' : 'animate-fade-in',
         isFull ? 'items-stretch' : 'items-end sm:items-center sm:justify-center sm:p-4',
         'bg-black/80 backdrop-blur-sm'
       )}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && dismissible) onClose()
+        if (e.target === e.currentTarget && dismissible && !closing) onClose()
+      }}
+      onAnimationEnd={(e) => {
+        if (closing && e.target === e.currentTarget) setPresent(false)
       }}
     >
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal="true"
+        aria-modal={closing ? undefined : true}
+        aria-hidden={closing || undefined}
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
@@ -137,13 +162,14 @@ export function Modal({
           'relative flex flex-col w-full bg-[var(--bg-raised)] text-[var(--text-primary)] outline-none',
           'border border-[var(--border-normal)] shadow-[var(--shadow-modal)] overflow-hidden',
           danger && 'border-[var(--color-error)]/30',
+          panelMotion,
           isFull
             ? 'h-dvh max-h-dvh rounded-none border-0'
             : fullscreenMobile
               ? cn('h-dvh max-h-dvh rounded-none border-0 sm:h-auto sm:max-h-[min(90dvh,56rem)] sm:rounded-[var(--radius-xl)] sm:border', sizeClasses[size])
               : cn(
-                  'max-h-[calc(100dvh-var(--safe-top)-0.75rem)] rounded-t-[var(--radius-xl)] border-b-0 animate-sheet-up',
-                  'sm:max-h-[min(90dvh,56rem)] sm:rounded-[var(--radius-xl)] sm:border-b sm:animate-scale-in',
+                  'max-h-[calc(100dvh-var(--safe-top)-0.75rem)] rounded-t-[var(--radius-xl)] border-b-0',
+                  'sm:max-h-[min(90dvh,56rem)] sm:rounded-[var(--radius-xl)] sm:border-b',
                   sizeClasses[size]
                 )
         )}

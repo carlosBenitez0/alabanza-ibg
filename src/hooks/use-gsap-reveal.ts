@@ -1,180 +1,133 @@
 'use client'
 
-import { useEffect, useRef, RefObject } from 'react'
+import { RefCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { gsap } from 'gsap'
+import { DURATION, EASE, prefersReducedMotion, staggerFor } from '@/lib/motion'
 
-export type GsapRevealFrom = 'bottom' | 'left' | 'fade' | 'scale'
+// Layout effect in the browser (hide before first paint, no flash); plain effect on the server
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+export type GsapRevealFrom = 'bottom' | 'fade'
 
 export interface GsapRevealOptions {
-  /** Which child selector to target, e.g. '.card', 'li'. Defaults to direct children. */
+  /** Which descendants to animate, e.g. '.card', 'li'. Defaults to direct children. */
   selector?: string
-  /** Stagger delay between each child (seconds). Default 0.07 */
-  stagger?: number
-  /** Delay before the animation begins (seconds). Default 0 */
-  delay?: number
-  /** Enter direction. Default 'bottom' */
+  /** Enter style. Default 'bottom' (small rise + fade) */
   from?: GsapRevealFrom
-  /** Y offset for 'bottom' (px). Default 24 */
+  /** Travel for 'bottom' (px). Default 10 */
   yOffset?: number
-  /** Duration (seconds). Default 0.6 */
-  duration?: number
-  /** Whether to trigger once on mount (true) or on IntersectionObserver. Default false */
-  immediate?: boolean
+  /**
+   * Keep watching the container and bring in children added later
+   * (search results, a newly added row). Default false.
+   */
+  watch?: boolean
 }
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+function fromVars(from: GsapRevealFrom, yOffset: number): gsap.TweenVars {
+  return from === 'bottom' ? { opacity: 0, y: yOffset } : { opacity: 0 }
 }
 
-/** Phones get shorter travel and tighter stagger so lists don't feel sluggish */
-function isCompactViewport() {
-  return typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
-}
-
-function getFromVars(from: GsapRevealFrom, yOffset: number): gsap.TweenVars {
-  switch (from) {
-    case 'bottom':
-      return { opacity: 0, y: yOffset, clipPath: 'inset(100% 0 0 0)' }
-    case 'left':
-      return { opacity: 0, x: -24, clipPath: 'inset(0 100% 0 0)' }
-    case 'scale':
-      return { opacity: 0, scale: 0.95 }
-    case 'fade':
-    default:
-      return { opacity: 0 }
-  }
-}
-
-function getToVars(from: GsapRevealFrom): gsap.TweenVars {
-  switch (from) {
-    case 'bottom':
-      return { opacity: 1, y: 0, clipPath: 'inset(0% 0 0 0)' }
-    case 'left':
-      return { opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }
-    case 'scale':
-      return { opacity: 1, scale: 1 }
-    case 'fade':
-    default:
-      return { opacity: 1 }
-  }
+function collect(el: HTMLElement, selector?: string): HTMLElement[] {
+  return (selector ? Array.from(el.querySelectorAll<HTMLElement>(selector)) : (Array.from(el.children) as HTMLElement[]))
 }
 
 /**
- * Animates the container's children (or a selector subset) with GSAP
- * when the container enters the viewport.
+ * Lists and grids arrive as a list: a short staggered rise when the container
+ * scrolls into view. Returns a callback ref, so it works even when the
+ * container mounts late (after a skeleton or loader), which a ref read once
+ * on mount could not.
  *
- * Uses gsap.context() for proper React cleanup.
- *
- * @example
- * const listRef = useGsapReveal<HTMLUListElement>({ stagger: 0.08 })
- * return <ul ref={listRef}> ... </ul>
+ * Content is only hidden from JS, and never when the user prefers reduced motion.
  */
 export function useGsapReveal<T extends HTMLElement = HTMLDivElement>(
   options: GsapRevealOptions = {}
-): RefObject<T | null> {
-  const ref = useRef<T | null>(null)
-  const {
-    selector,
-    stagger = 0.07,
-    delay = 0,
-    from = 'bottom',
-    yOffset = 24,
-    duration = 0.55,
-    immediate = false,
-  } = options
+): RefCallback<T> {
+  const [el, setEl] = useState<T | null>(null)
+  const { selector, from = 'bottom', yOffset = 10, watch = false } = options
 
-  useEffect(() => {
-    const el = ref.current
+  useIsoLayoutEffect(() => {
     if (!el || prefersReducedMotion()) return
-
-    const compact = isCompactViewport()
-    const effStagger = compact ? Math.min(stagger, 0.04) : stagger
-    const effOffset = compact ? Math.min(yOffset, 12) : yOffset
+    const seen = new WeakSet<Element>()
+    let mutations: MutationObserver | null = null
 
     const ctx = gsap.context(() => {
-      const targets = selector
-        ? el.querySelectorAll(selector)
-        : Array.from(el.children)
+      const targets = collect(el, selector)
+      targets.forEach((t) => seen.add(t))
+      if (targets.length) gsap.set(targets, fromVars(from, yOffset))
 
-      if (!targets.length) return
-
-      const fromVars = getFromVars(from, effOffset)
-      const toVars = getToVars(from)
-
-      const animate = () => {
-        gsap.fromTo(targets, fromVars, {
-          ...toVars,
-          duration,
-          delay,
-          stagger: effStagger,
-          ease: 'power3.out',
-          clearProps: 'clip-path',
+      const reveal = () =>
+        gsap.to(targets, {
+          opacity: 1,
+          y: 0,
+          duration: DURATION.slow,
+          ease: EASE.out,
+          stagger: staggerFor(targets.length),
+          clearProps: 'transform,opacity',
         })
-      }
 
-      if (immediate) {
-        animate()
-        return
-      }
-
-      // Set initial hidden state
-      gsap.set(targets, fromVars)
-
-      // threshold 0: containers taller than the screen (long lists on phones)
-      // must still reveal as soon as any part of them is visible
-      const observer = new IntersectionObserver(
+      const io = new IntersectionObserver(
         (entries) => {
           if (entries[0].isIntersecting) {
-            animate()
-            observer.disconnect()
+            reveal()
+            io.disconnect()
           }
         },
-        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
+        // threshold 0: long lists taller than the screen still reveal right away
+        { threshold: 0, rootMargin: '0px 0px -24px 0px' }
       )
-      observer.observe(el)
+      io.observe(el)
 
-      return () => observer.disconnect()
+      if (watch) {
+        mutations = new MutationObserver(() => {
+          const fresh = collect(el, selector).filter((t) => !seen.has(t))
+          if (!fresh.length) return
+          fresh.forEach((t) => seen.add(t))
+          gsap.fromTo(fresh, fromVars(from, yOffset * 0.6), {
+            opacity: 1,
+            y: 0,
+            duration: DURATION.base,
+            ease: EASE.out,
+            stagger: staggerFor(fresh.length, 0.03),
+            clearProps: 'transform,opacity',
+          })
+        })
+        mutations.observe(el, { childList: true, subtree: Boolean(selector) })
+      }
+
+      return () => io.disconnect()
     }, el)
 
-    return () => ctx.revert()
-  }, [from, yOffset, stagger, delay, duration, selector, immediate])
+    return () => {
+      mutations?.disconnect()
+      ctx.revert()
+    }
+  }, [el, selector, from, yOffset, watch])
 
-  return ref
+  return setEl as RefCallback<T>
 }
 
 /**
- * Simple single-element fade/reveal on mount.
- *
- * @example
- * const titleRef = useGsapMountReveal({ from: 'bottom', delay: 0.1 })
- * return <h1 ref={titleRef}>...</h1>
+ * One element fading up into place when it mounts (page headers, auth cards).
  */
 export function useGsapMountReveal<T extends HTMLElement = HTMLDivElement>(
-  options: Omit<GsapRevealOptions, 'selector' | 'stagger'> = {}
-): RefObject<T | null> {
-  const ref = useRef<T | null>(null)
-  const { from = 'bottom', yOffset = 20, duration = 0.5, delay = 0 } = options
+  options: Pick<GsapRevealOptions, 'from' | 'yOffset'> = {}
+): RefCallback<T> {
+  const [el, setEl] = useState<T | null>(null)
+  const { from = 'bottom', yOffset = 8 } = options
 
-  useEffect(() => {
-    const el = ref.current
+  useIsoLayoutEffect(() => {
     if (!el || prefersReducedMotion()) return
-
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        getFromVars(from, yOffset),
-        {
-          ...getToVars(from),
-          duration,
-          delay,
-          ease: 'power3.out',
-          clearProps: 'clip-path',
-        }
-      )
+      gsap.fromTo(el, fromVars(from, yOffset), {
+        opacity: 1,
+        y: 0,
+        duration: DURATION.slow,
+        ease: EASE.out,
+        clearProps: 'transform,opacity',
+      })
     }, el)
-
     return () => ctx.revert()
-  }, [from, yOffset, duration, delay])
+  }, [el, from, yOffset])
 
-  return ref
+  return setEl as RefCallback<T>
 }

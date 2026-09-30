@@ -42,7 +42,10 @@ typography:
     lineHeight: 1.2
 motion:
   engine: "GSAP"
-  preset: "clip-path reveal & staggered grid entry"
+  preset: "sober: short fade-rise list entry, faster exits, sliding indicators, transposition step"
+  durations: "150ms feedback · 240ms routine · 320ms overlays"
+  easing: "arrive cubic-bezier(0.16, 1, 0.3, 1) · leave cubic-bezier(0.4, 0, 1, 1)"
+  tokens: "src/lib/motion.ts"
 ---
 
 # Design System: Alabanza IBG — El Índice del Cuarto Oscuro
@@ -55,7 +58,12 @@ Alabanza IBG ha sido completamente rediseñado bajo una estética de escala de g
 
 **Características Clave:**
 - **Grayscale Absoluto:** Fondo `#0a0a0a`, superficies `#111111` y `#1a1a1a`, texto `#f5f5f5`. Sin acentos de color decorativos.
-- **Micro-animaciones GSAP:** Revelado con `clip-path` y apariciones en cascada (`stagger`) al hacer scroll.
+- **Movimiento sobrio (GSAP + CSS):** la interfaz no debe llamar la atención sobre sí misma.
+  - *Momento principal:* al cambiar de tono, solo las líneas de acordes dan un paso en la dirección del cambio (arriba al subir, abajo al bajar); la letra no se mueve.
+  - *Continuidad:* listas que entran en cascada corta (máx. 0,3 s en total), filas que se deslizan al reordenar (Flip), indicadores que se deslizan en pestañas y menú inferior, modales y avisos que salen animados.
+  - *Salidas* más rápidas que las entradas; transición entre páginas solo con fundido (sin desplazamiento).
+  - *Carga:* siluetas (skeletons) con la forma del contenido, no spinners; el spinner queda solo para la sesión inicial.
+  - *Movimiento reducido:* todo aparece sin desplazamiento; nada queda oculto si el JS no corre.
 - **Tipografía Crisp:** Geist Sans con tracking ajustado en cabezales.
 - **Bordes Hairline:** Líneas finas `#1f1f1f` y `#2e2e2e` para delimitar estructura sin peso ni sombra.
 - **Colores Semánticos puros:** Los tonos verde, amarillo, rojo y azul existen únicamente en badges de estado para asignaciones y listas.

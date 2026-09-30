@@ -19,7 +19,7 @@ export function AuthCard({
   children: ReactNode
   footer?: ReactNode
 }) {
-  const cardRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.6, yOffset: 30 })
+  const cardRef = useGsapMountReveal<HTMLDivElement>({ yOffset: 12 })
 
   return (
     <div className="min-h-dvh flex items-start sm:items-center justify-center bg-[var(--bg-page)] px-4 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] sm:py-12 text-[var(--text-primary)]">
