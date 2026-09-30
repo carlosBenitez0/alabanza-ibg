@@ -8,7 +8,7 @@ import { Button, Badge, Textarea, Modal } from '@/components/ui'
 import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Download, WrapText, Minus, Plus, RotateCcw, Save } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
 import { ALL_MUSIC_KEYS, getKeyLabel } from '@/lib/music-keys'
-import { keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
+import { keyCodeFor, keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
 import { downloadTablaturePdf, pdfFileName } from '@/lib/tablature-pdf'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +37,20 @@ function exitBrowserFullscreen() {
   const doc = document as WebkitDocument
   const exit = doc.exitFullscreen?.bind(doc) ?? doc.webkitExitFullscreen?.bind(doc)
   Promise.resolve(exit?.()).catch(() => {})
+}
+
+/**
+ * Shift to show a sheet written in `baseKey` in the key picked for a privilege.
+ * If the modes differ (older privileges could pick a major key for a minor song),
+ * the pick is read as its relative key, which uses the same chords (Am ↔ C).
+ */
+function initialShift(baseKey?: string | null, wanted?: string | null): number {
+  const base = parseKey(baseKey)
+  const target = parseKey(wanted)
+  if (!base || !target) return 0
+  if (base.minor === target.minor) return semitonesBetween(baseKey, wanted)
+  const relative = keyCodeFor(target.index + (target.minor ? 3 : -3), !target.minor)
+  return semitonesBetween(baseKey, relative)
 }
 
 // The "add to home screen" hint is shown once per visit
@@ -71,6 +85,8 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
   const [baseKey, setBaseKey] = useState<string | null>(null)
   const [shift, setShift] = useState(0)
   const [confirmKeySave, setConfirmKeySave] = useState(false)
+  // Key chosen in the privilege/event this sheet was opened from (a view, never saved)
+  const [privilegeKey, setPrivilegeKey] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
 
   const fontSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl']
@@ -84,7 +100,8 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
       setIsEditing(!song.has_tablature && !song.tablature_content)
       setIsFullscreen(false)
       setBaseKey(song.default_key || null)
-      setShift(semitonesBetween(song.default_key, initialKey))
+      setShift(initialShift(song.default_key, initialKey))
+      setPrivilegeKey(initialKey && parseKey(initialKey) ? initialKey : null)
       setConfirmKeySave(false)
     }
   }
@@ -313,8 +330,17 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
     </div>
   )
 
+  const showingPrivilegeKey = Boolean(privilegeKey && baseKey && privilegeKey !== baseKey && shift === initialShift(baseKey, privilegeKey))
+
   const keyBar = tabContent && (
     <div className="mb-3 space-y-2">
+      {showingPrivilegeKey && (
+        <p className="p-2.5 rounded-[var(--radius-md)] border border-[var(--color-info)]/30 bg-[var(--color-info-dark)]/20 text-xs text-[var(--text-secondary)]">
+          Mostrando en <strong className="text-[var(--text-primary)]">{getKeyLabel(viewKey)}</strong>, el tono elegido para
+          este privilegio. Tono original: <strong className="text-[var(--text-primary)]">{getKeyLabel(baseKey)}</strong>. La
+          alabanza guardada no cambia.
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Cambiar tono">
         <span className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)]">Tono</span>
         <button type="button" className={toolButton} onClick={() => changeShift(shift - 1)} aria-label="Bajar medio tono">

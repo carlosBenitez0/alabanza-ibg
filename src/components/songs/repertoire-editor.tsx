@@ -1,7 +1,7 @@
 'use client'
 
 import { SongAutocomplete } from '@/components/privileges/song-autocomplete'
-import { ALL_MUSIC_KEYS } from '@/lib/music-keys'
+import { sameModeKeys } from '@/lib/chords'
 import type { PrivilegeSongItem } from '@/types/privileges'
 import { ArrowDown, ArrowUp, Music, Trash2 } from 'lucide-react'
 
@@ -59,7 +59,7 @@ export function RepertoireEditor({
                   onChange={(e) => onChange(songs.map((s, i) => (i === idx ? { ...s, key: e.target.value } : s)))}
                   className="flex-1 sm:flex-none h-11 sm:h-8 bg-[var(--bg-active)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius)] text-base sm:text-xs px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
                 >
-                  {ALL_MUSIC_KEYS.map((k) => (
+                  {sameModeKeys(song.key).map((k) => (
                     <option key={k.code} value={k.code} className="bg-[var(--bg-raised)] text-[var(--text-primary)]">
                       {k.label}
                     </option>

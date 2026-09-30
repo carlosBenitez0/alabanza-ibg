@@ -161,6 +161,15 @@ export function shiftKey(code: string | null | undefined, semitones: number): st
   return keyCodeFor(parsed.index + semitones, parsed.minor)
 }
 
+/**
+ * Keys a song can be moved to: same mode as its key (a minor song stays minor).
+ * Without a known key every key is offered.
+ */
+export function sameModeKeys(code?: string | null) {
+  const parsed = parseKey(code)
+  return parsed ? ALL_MUSIC_KEYS.filter((k) => parseKey(k.code)?.minor === parsed.minor) : ALL_MUSIC_KEYS
+}
+
 export function normalizeShift(semitones: number): number {
   const s = mod12(semitones)
   return s > 6 ? s - 12 : s
