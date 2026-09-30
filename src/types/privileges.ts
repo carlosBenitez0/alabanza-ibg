@@ -65,6 +65,17 @@ export interface PrivilegeSongItem {
   key?: string
 }
 
+/** Singing privileges where other members can join as backing vocals (coristas) */
+export const PRIVILEGES_WITH_BACKING_VOCALS: PrivilegeKey[] = ['saturday_musician', 'sunday_lead_vocal']
+
+/** A member singing backing vocals in someone else's privilege (the role is per privilege) */
+export interface PrivilegeBackingVocal {
+  id: string
+  profile_id: string
+  profile_name?: string
+  added_by?: string | null
+}
+
 export interface WeeklyPrivilege {
   id: string
   profile_id: string
@@ -74,4 +85,10 @@ export interface WeeklyPrivilege {
   songs: PrivilegeSongItem[]
   notes?: string
   created_at: string
+  backing_vocals?: PrivilegeBackingVocal[]
+}
+
+/** Local-only records (saved while offline) have no database id yet */
+export function isRemotePrivilege(privilege: Pick<WeeklyPrivilege, 'id'>): boolean {
+  return !privilege.id.startsWith('priv_')
 }

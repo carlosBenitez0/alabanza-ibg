@@ -7,8 +7,9 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { startOfWeek } from 'date-fns'
 import { formatISOShortDate, formatFullSpanishDate } from '@/lib/date-helpers'
 import { Card, CardContent, CardHeader, Badge, PageHeader, PageLoader, EmptyState } from '@/components/ui'
-import { User, Music, Mic, Users as UsersIcon, Guitar } from 'lucide-react'
+import { User, Music, Mic, Mic2, Users as UsersIcon, Guitar } from 'lucide-react'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey, WeeklyPrivilege } from '@/types/privileges'
+import { fetchPrivileges } from '@/lib/privilege-storage'
 import { cn } from '@/lib/utils'
 
 interface Profile {
@@ -19,6 +20,8 @@ interface Profile {
 
 interface UserWithPrivileges extends Profile {
   privileges: WeeklyPrivilege[]
+  /** Other members' privileges where this user is a backing vocal */
+  backing: WeeklyPrivilege[]
 }
 
 export default function UsersDirectoryPage() {
@@ -35,19 +38,25 @@ export default function UsersDirectoryPage() {
     const upcomingDates = [formatISOShortDate(satDate), formatISOShortDate(sunDate)]
     const weekLabel = `${formatFullSpanishDate(satDate)} - ${formatFullSpanishDate(sunDate)}`
 
-    const [profilesRes, privRes] = await Promise.all([
+    const [profilesRes, weekPrivileges] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role').order('full_name'),
-      supabase.from('weekly_privileges').select('*').in('assigned_date', upcomingDates),
+      fetchPrivileges(supabase, { from: upcomingDates[0], to: upcomingDates[1] }),
     ])
 
     const usersMap: Record<string, UserWithPrivileges> = {}
-    for (const p of profilesRes.data || []) usersMap[p.id] = { ...p, privileges: [] }
-    for (const priv of privRes.data || []) usersMap[priv.profile_id]?.privileges.push(priv as WeeklyPrivilege)
+    for (const p of profilesRes.data || []) usersMap[p.id] = { ...p, privileges: [], backing: [] }
+    for (const priv of weekPrivileges) {
+      if (!upcomingDates.includes(priv.assigned_date)) continue
+      usersMap[priv.profile_id]?.privileges.push(priv)
+      // Backing vocals take part in this privilege without owning it
+      for (const bv of priv.backing_vocals || []) usersMap[bv.profile_id]?.backing.push(priv)
+    }
 
     // Members with privileges first, then alphabetical
+    const busy = (u: UserWithPrivileges) => u.privileges.length + u.backing.length > 0
     const users = Object.values(usersMap).sort((a, b) => {
-      if (a.privileges.length > 0 && b.privileges.length === 0) return -1
-      if (a.privileges.length === 0 && b.privileges.length > 0) return 1
+      if (busy(a) && !busy(b)) return -1
+      if (!busy(a) && busy(b)) return 1
       return (a.full_name || '').localeCompare(b.full_name || '')
     })
     return { users, weekLabel }
@@ -89,7 +98,7 @@ export default function UsersDirectoryPage() {
       ) : (
         <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {users.map(u => {
-            const hasPrivileges = u.privileges.length > 0
+            const hasPrivileges = u.privileges.length + u.backing.length > 0
 
             return (
               <Card key={u.id} className={cn(
@@ -143,6 +152,27 @@ export default function UsersDirectoryPage() {
                                   </span>
                                   <span className="text-sm sm:text-xs font-medium text-[var(--text-primary)] truncate">
                                     {def?.title || priv.privilege_key}
+                                  </span>
+                                </div>
+                                <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} size="sm">
+                                  {def?.dayLabel || priv.assigned_date}
+                                </Badge>
+                              </div>
+                            )
+                          })}
+                          {u.backing.map((priv) => {
+                            const def = getPrivilegeDef(priv.privilege_key)
+                            return (
+                              <div
+                                key={`bv-${priv.id}`}
+                                className="flex items-center justify-between gap-2 p-2 rounded bg-[var(--bg-surface)] border border-dashed border-[var(--border-normal)]"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-[var(--text-secondary)] shrink-0">
+                                    <Mic2 className="w-3.5 h-3.5" />
+                                  </span>
+                                  <span className="text-sm sm:text-xs font-medium text-[var(--text-primary)] truncate">
+                                    Corista · de {priv.profile_name}
                                   </span>
                                 </div>
                                 <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} size="sm">

@@ -68,8 +68,21 @@ const PRIVILEGE_SELECT = `
   created_at,
   profile:profiles (
     full_name
+  ),
+  backing_vocals:privilege_backing_vocals (
+    id,
+    profile_id,
+    added_by,
+    profile:profiles!privilege_backing_vocals_profile_id_fkey (
+      full_name
+    )
   )
 `
+
+// Same query without backing vocals, for databases where that migration isn't applied yet
+const PRIVILEGE_SELECT_BASIC = PRIVILEGE_SELECT.slice(0, PRIVILEGE_SELECT.indexOf(',\n  backing_vocals')) + '\n'
+
+type ProfileJoin = { full_name: string | null } | { full_name: string | null }[] | null
 
 interface PrivilegeRow {
   id: string
@@ -79,21 +92,50 @@ interface PrivilegeRow {
   songs: WeeklyPrivilege['songs'] | null
   notes?: string
   created_at: string
-  profile: { full_name: string | null } | { full_name: string | null }[] | null
+  profile: ProfileJoin
+  backing_vocals?: { id: string; profile_id: string; added_by: string | null; profile: ProfileJoin }[] | null
 }
 
+const profileName = (join: ProfileJoin) => (Array.isArray(join) ? join[0] : join)?.full_name || 'Miembro'
+
 function mapPrivilegeRow(item: PrivilegeRow): WeeklyPrivilege {
-  const profileObj = Array.isArray(item.profile) ? item.profile[0] : item.profile
   return {
     id: item.id,
     profile_id: item.profile_id,
-    profile_name: profileObj?.full_name || 'Miembro',
+    profile_name: profileName(item.profile),
     privilege_key: item.privilege_key as WeeklyPrivilege['privilege_key'],
     assigned_date: item.assigned_date,
     songs: item.songs || [],
     notes: item.notes,
     created_at: item.created_at,
+    backing_vocals: (item.backing_vocals || []).map((bv) => ({
+      id: bv.id,
+      profile_id: bv.profile_id,
+      profile_name: profileName(bv.profile),
+      added_by: bv.added_by,
+    })),
   }
+}
+
+// ─── Backing vocals (coristas) ───
+
+/** Adds a member as backing vocal. Returns an error message or null. */
+export async function addBackingVocal(
+  supabase: SupabaseClient,
+  privilegeId: string,
+  profileId: string
+): Promise<string | null> {
+  const { error } = await supabase
+    .from('privilege_backing_vocals')
+    .insert({ privilege_id: privilegeId, profile_id: profileId })
+  if (!error) return null
+  if (error.code === '23505') return 'Esa persona ya es corista en este privilegio.'
+  return error.message || 'No se pudo añadir la corista.'
+}
+
+export async function removeBackingVocal(supabase: SupabaseClient, backingVocalId: string): Promise<string | null> {
+  const { error } = await supabase.from('privilege_backing_vocals').delete().eq('id', backingVocalId)
+  return error ? error.message || 'No se pudo quitar la corista.' : null
 }
 
 /**
@@ -107,16 +149,17 @@ export async function fetchPrivileges(
   const inRange = (p: WeeklyPrivilege) => !range || (p.assigned_date >= range.from && p.assigned_date <= range.to)
   const local = getLocalPrivileges().filter(inRange)
 
-  try {
-    let query = supabase
-      .from('weekly_privileges')
-      .select(PRIVILEGE_SELECT)
-      .order('assigned_date', { ascending: false })
+  const run = (select: string) => {
+    let query = supabase.from('weekly_privileges').select(select).order('assigned_date', { ascending: false })
     if (range) query = query.gte('assigned_date', range.from).lte('assigned_date', range.to)
+    return query
+  }
 
-    const { data, error } = await query
+  try {
+    let { data, error } = await run(PRIVILEGE_SELECT)
+    if (error) ({ data, error } = await run(PRIVILEGE_SELECT_BASIC))
     if (error) throw error
-    return mergePrivileges(((data || []) as PrivilegeRow[]).map(mapPrivilegeRow), local)
+    return mergePrivileges(((data || []) as unknown as PrivilegeRow[]).map(mapPrivilegeRow), local)
   } catch {
     return local
   }
