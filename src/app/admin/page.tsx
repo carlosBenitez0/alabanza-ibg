@@ -35,10 +35,10 @@ function StatCard({ title, value, icon, href }: { title: string; value: number; 
 }
 
 const quickActions = [
-  { href: '/admin/events/new', title: 'Nuevo Evento', description: 'Crear ensayo, culto o sábado', icon: Plus },
+  { href: '/admin/events/new', title: 'Nuevo Evento', description: 'Campamento, evento unido o invitación', icon: Plus },
   { href: '/admin/assignments', title: 'Gestionar Asignaciones', description: 'Voces, coros, músicos', icon: ClipboardList },
   { href: '/admin/users', title: 'Ver Usuarios', description: 'Miembros y roles', icon: UserCog },
-  { href: '/admin/events', title: 'Calendario de Eventos', description: 'Todos los eventos', icon: Calendar },
+  { href: '/admin/events', title: 'Eventos Especiales', description: 'Invitaciones y eventos fuera de los privilegios', icon: Calendar },
 ]
 
 export default function AdminDashboardPage() {
