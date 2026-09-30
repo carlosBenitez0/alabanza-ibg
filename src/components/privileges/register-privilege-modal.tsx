@@ -108,12 +108,8 @@ export function RegisterPrivilegeModal({
   }
 
   const handleAddSong = (newSong: PrivilegeSongItem) => {
+    // The new row in the list is the feedback; a toast would cover the next pick
     updateDraft({ songs: [...songs, newSong] })
-    toast({
-      title: 'Alabanza agregada',
-      description: `"${newSong.title}" [Tono: ${newSong.key}] añadida a la lista`,
-      variant: 'success',
-    })
   }
 
   const handleRemoveSong = (index: number) => {
