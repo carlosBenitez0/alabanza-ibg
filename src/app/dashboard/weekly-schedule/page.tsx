@@ -82,8 +82,8 @@ export default function WeeklySchedulePage() {
 
       <PageHeader
         ref={headerRef}
-        title="Tabla Semanal de Privilegios"
-        description="Matriz pública de la congregación para Sábado y Domingo."
+        title="Tabla semanal"
+        description="Quién sirve en cada privilegio del sábado y del domingo."
         actions={
           <>
             <div className="flex items-center justify-between gap-1 bg-[var(--bg-raised)] border border-[var(--border-normal)] rounded-[var(--radius-md)] p-1">
@@ -117,7 +117,7 @@ export default function WeeklySchedulePage() {
             {canRegister && (
               <Button className="hidden lg:inline-flex" onClick={() => handleOpenModal('saturday_musician')}>
                 <Plus className="w-4 h-4" />
-                Registrar Mi Privilegio
+                Registrar mi privilegio
               </Button>
             )}
           </>
@@ -125,7 +125,7 @@ export default function WeeklySchedulePage() {
       />
 
       {canRegister && (
-        <Fab icon={<Plus />} label="Registrarme" onClick={() => handleOpenModal(mobileDay === 'saturday' ? 'saturday_musician' : 'sunday_lead_vocal', mobileDay)} />
+        <Fab icon={<Plus />} label="Registrar" onClick={() => handleOpenModal(mobileDay === 'saturday' ? 'saturday_musician' : 'sunday_lead_vocal', mobileDay)} />
       )}
 
       {/* Phones/tablets: one day at a time */}
@@ -236,11 +236,11 @@ function PrivilegeMatrixSlot({
       <CardContent className="pt-4 sm:pt-4 space-y-3">
         {assignedList.length === 0 ? (
           <div className="p-3 sm:p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <span className="text-sm text-[var(--text-tertiary)] font-mono">Slot libre sin registrar aún</span>
+            <span className="text-sm text-[var(--text-tertiary)]">Libre — nadie se ha registrado</span>
             {canRegister && (
               <Button size="sm" variant="outline" onClick={() => onOpenModal(definition.key)} fullWidthMobile>
                 <Plus className="w-4 h-4" />
-                Registrarme aquí
+                Registrar mi privilegio
               </Button>
             )}
           </div>

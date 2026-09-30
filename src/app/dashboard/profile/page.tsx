@@ -157,7 +157,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl space-y-5 sm:space-y-6 animate-fade-in">
-      <PageHeader title="Mi Perfil" description="Gestiona tu información personal y preferencias" />
+      <PageHeader title="Mi perfil" description="Gestiona tu información personal y preferencias" />
 
       <form id="profile-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5 sm:space-y-6" noValidate>
         {/* Personal info */}
@@ -309,9 +309,10 @@ export default function ProfilePage() {
       </form>
 
       {/* Danger zone */}
-      <Card className="border-[var(--color-error)]/20 bg-[var(--color-error)]/5">
+      {/* Neutral card: only the destructive button itself carries red */}
+      <Card className="border-[var(--border-normal)]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-[var(--color-error)]">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <AlertCircle className="w-5 h-5" aria-hidden="true" />
             Zona de Peligro
           </CardTitle>

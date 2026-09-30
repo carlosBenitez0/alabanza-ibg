@@ -23,11 +23,11 @@ export interface NavItem {
 
 export const mainNavigation: NavItem[] = [
   { name: 'Mi Panel', short: 'Panel', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Tabla de la Semana', short: 'Semana', href: '/dashboard/weekly-schedule', icon: ListMusic },
+  { name: 'Tabla Semanal', short: 'Semana', href: '/dashboard/weekly-schedule', icon: ListMusic },
   { name: 'Repertorio', short: 'Repertorio', href: '/dashboard/songs', icon: Music },
   { name: 'Mi Calendario', short: 'Calendario', href: '/dashboard/events', icon: Calendar },
   { name: 'Equipo', href: '/dashboard/users', icon: Users },
-  { name: 'Notificaciones', short: 'Avisos', href: '/dashboard/notifications', icon: Bell, badge: true },
+  { name: 'Avisos', short: 'Avisos', href: '/dashboard/notifications', icon: Bell, badge: true },
   { name: 'Mi Perfil', href: '/dashboard/profile', icon: Settings },
 ]
 

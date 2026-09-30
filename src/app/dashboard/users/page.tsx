@@ -92,7 +92,7 @@ export default function UsersDirectoryPage() {
   return (
     <div className="space-y-5 sm:space-y-6 animate-fade-in">
       <PageHeader
-        title="Equipo y Privilegios"
+        title="Equipo"
         description={`Quién participa el fin de semana del ${weekLabel}.`}
       />
 
@@ -112,7 +112,7 @@ export default function UsersDirectoryPage() {
                 "overflow-hidden transition-all duration-200 border",
                 hasPrivileges 
                   ? "bg-[var(--bg-raised)] border-[var(--border-strong)]" 
-                  : "bg-[var(--bg-surface)] border-[var(--border-subtle)] opacity-80"
+                  : "bg-[var(--bg-surface)] border-[var(--border-subtle)]"
               )}>
                 <CardHeader className="p-4 pb-2 sm:p-4 sm:pb-2 flex flex-row items-center gap-3">
                   <div className={cn(

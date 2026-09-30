@@ -20,16 +20,17 @@ interface Notification {
   created_at: string
 }
 
+// Grayscale on purpose (DESIGN.md keeps color for status badges): the icon shape tells the kind
 function NotificationIcon({ type }: { type: string }) {
-  const className = 'w-5 h-5'
+  const className = 'w-5 h-5 text-[var(--text-secondary)]'
   switch (type) {
-    case 'assignment': return <Calendar className={cn(className, 'text-[var(--color-info)]')} aria-hidden="true" />
+    case 'assignment': return <Calendar className={className} aria-hidden="true" />
     case 'song_list_submitted':
-    case 'new_song': return <Music className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
-    case 'song_list_approved': return <Check className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
-    case 'reminder': return <Clock className={cn(className, 'text-[var(--color-warning)]')} aria-hidden="true" />
-    case 'backing_vocal': return <Mic2 className={cn(className, 'text-[var(--color-info)]')} aria-hidden="true" />
-    default: return <Bell className={cn(className, 'text-[var(--text-secondary)]')} aria-hidden="true" />
+    case 'new_song': return <Music className={className} aria-hidden="true" />
+    case 'song_list_approved': return <Check className={className} aria-hidden="true" />
+    case 'reminder': return <Clock className={className} aria-hidden="true" />
+    case 'backing_vocal': return <Mic2 className={className} aria-hidden="true" />
+    default: return <Bell className={className} aria-hidden="true" />
   }
 }
 
@@ -103,7 +104,7 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-5 sm:space-y-6 animate-fade-in">
       <PageHeader
-        title="Notificaciones"
+        title="Avisos"
         description="Mantente al día con tu ministerio"
         actions={
           unreadCount > 0 ? (
@@ -154,7 +155,12 @@ function NotificationItem({
           <span className={cn('text-sm text-[var(--text-primary)]', isUnread ? 'font-semibold' : 'font-medium')}>
             {notification.title}
           </span>
-          {isUnread && <span className="mt-1.5 w-2 h-2 rounded-full bg-[var(--text-primary)] shrink-0" aria-label="Sin leer" />}
+          {isUnread && (
+            <>
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-[var(--text-primary)] shrink-0" aria-hidden="true" />
+              <span className="sr-only">Sin leer</span>
+            </>
+          )}
         </span>
         <span className="block text-sm text-[var(--text-secondary)] mt-0.5 break-words">{notification.message}</span>
         <span className="flex items-center gap-2 mt-1.5 text-xs text-[var(--text-tertiary)]">
