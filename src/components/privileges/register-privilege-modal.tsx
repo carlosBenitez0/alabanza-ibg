@@ -349,7 +349,7 @@ export function RegisterPrivilegeModal({
             Mi listado de alabanzas ({songs.length})
           </p>
 
-          <SongAutocomplete onAddSong={handleAddSong} disabled={loading} />
+          <SongAutocomplete onAddSong={handleAddSong} disabled={loading} selectedSongs={songs} />
 
           {songs.length === 0 ? (
             <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)]">
