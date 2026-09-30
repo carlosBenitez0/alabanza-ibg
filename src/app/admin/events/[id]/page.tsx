@@ -4,7 +4,8 @@ import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, UserPlus, Users, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, UserPlus, Users, MoreHorizontal, ListMusic, Save } from 'lucide-react'
+import { RepertoireEditor } from '@/components/songs/repertoire-editor'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useToast } from '@/components/providers/toast-provider'
 import { Button, Modal, PageHeader, PageLoader, EmptyState, Select, buttonVariants } from '@/components/ui'
@@ -66,6 +67,9 @@ export default function EditEventPage() {
   const [newMember, setNewMember] = useState('')
   const [newRole, setNewRole] = useState<AssignmentRole>('lead_vocal')
   const [editing, setEditing] = useState<AssignmentRow | null>(null)
+  // Unsaved repertoire edits (null = showing what is saved)
+  const [songsDraft, setSongsDraft] = useState<PrivilegeSongItem[] | null>(null)
+  const [savingSongs, setSavingSongs] = useState(false)
 
   const loadBase = useCallback(async () => {
     const [eventRes, membersRes] = await Promise.all([
@@ -101,6 +105,20 @@ export default function EditEventPage() {
     toast({ title: 'Evento actualizado', variant: 'success' })
     base.reload()
     return true
+  }
+
+  const handleSaveSongs = async () => {
+    if (!songsDraft) return
+    setSavingSongs(true)
+    const { error } = await supabase.from('events').update({ songs: songsDraft }).eq('id', id)
+    setSavingSongs(false)
+    if (error) {
+      toast({ title: 'No se pudo guardar el repertorio', description: 'Intenta de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Repertorio guardado', variant: 'success' })
+    base.setData((prev) => ({ ...prev, event: prev.event ? { ...prev.event, songs: songsDraft } : prev.event }))
+    setSongsDraft(null)
   }
 
   const handleDelete = async () => {
@@ -229,6 +247,34 @@ export default function EditEventPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="space-y-3 pt-2 border-t border-[var(--border-subtle)]" aria-labelledby="repertoire-title">
+        <div className="flex items-center justify-between gap-2 pt-4">
+          <h2 id="repertoire-title" className="text-base font-bold flex items-center gap-2">
+            <ListMusic className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+            Repertorio ({(songsDraft ?? event.songs ?? []).length})
+          </h2>
+          {songsDraft && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setSongsDraft(null)} disabled={savingSongs}>
+                Descartar
+              </Button>
+              <Button size="sm" onClick={handleSaveSongs} loading={savingSongs}>
+                <Save className="w-4 h-4" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-[var(--text-tertiary)]">
+          Las alabanzas que el equipo cantará en este evento, en orden y con su tono. El equipo las ve en el detalle del evento.
+        </p>
+        <RepertoireEditor
+          songs={songsDraft ?? event.songs ?? []}
+          onChange={setSongsDraft}
+          disabled={savingSongs}
+        />
       </section>
 
       <section className="space-y-3 pt-2 border-t border-[var(--border-subtle)]" aria-labelledby="details-title">
