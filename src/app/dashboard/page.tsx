@@ -8,7 +8,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PRIVILEGES_WITH_BACKING_VOCALS, PrivilegeKey } from '@/types/privileges'
 import { getWeekBounds, formatFullSpanishDate, formatISOShortDate } from '@/lib/date-helpers'
 import { fetchPrivileges, orderUserPrivileges } from '@/lib/privilege-storage'
-import { songViewerHref } from '@/lib/song-links'
+import { RepertoireList } from '@/components/songs/repertoire-list'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { Card, CardContent, CardHeader, Button, Badge, PageHeader, PageLoader, EmptyState, Fab, buttonVariants } from '@/components/ui'
 import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil, Mic2, Guitar } from 'lucide-react'
@@ -314,24 +314,7 @@ function BackingPrivilegeCard({
           {formatFullSpanishDate(privilege.assigned_date)}
         </p>
         {privilege.songs.length > 0 ? (
-          <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {privilege.songs.map((song, idx) => (
-              <li key={idx}>
-                <Link
-                  href={songViewerHref(song)}
-                  className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] flex items-center justify-between gap-2 text-sm border bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors"
-                  aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
-                >
-                  <span className="font-medium min-w-0 truncate">{idx + 1}. {song.title}</span>
-                  {song.key && (
-                    <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
-                      Tono: {song.key}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ol>
+          <RepertoireList songs={privilege.songs} />
         ) : (
           <p className="text-sm text-[var(--text-tertiary)]">Aún no hay alabanzas registradas en este privilegio.</p>
         )}
@@ -405,26 +388,7 @@ function MyPrivilegeCard({
           </p>
 
           {privilege.songs && privilege.songs.length > 0 ? (
-            <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {privilege.songs.map((song, sIdx) => (
-                <li key={sIdx}>
-                  <Link
-                    href={songViewerHref(song)}
-                    className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] flex items-center justify-between gap-2 text-sm border bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors"
-                    aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
-                  >
-                    <span className="font-medium min-w-0 truncate">
-                      {sIdx + 1}. {song.title}
-                    </span>
-                    {song.key && (
-                      <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
-                        Tono: {song.key}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ol>
+            <RepertoireList songs={privilege.songs} />
           ) : (
             <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)]">
               No has registrado canciones aún para tu privilegio.

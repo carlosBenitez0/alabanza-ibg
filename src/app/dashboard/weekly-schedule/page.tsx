@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { songViewerHref } from '@/lib/song-links'
+import { RepertoireList } from '@/components/songs/repertoire-list'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useSupabase } from '@/hooks/use-supabase'
@@ -265,27 +264,7 @@ function PrivilegeMatrixSlot({
                   <p className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)]">
                     Alabanzas ({privilege.songs.length})
                   </p>
-                  <ol className="grid grid-cols-1 gap-1">
-                    {privilege.songs.map((song, idx) => (
-                      <li key={idx}>
-                        <Link
-                          href={songViewerHref(song)}
-                          className="group flex items-center justify-between gap-2 text-sm min-h-11 sm:min-h-9 py-1.5 px-2 rounded bg-[var(--bg-raised)] border border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors"
-                          aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
-                        >
-                          <span className="font-medium min-w-0 truncate">{idx + 1}. {song.title}</span>
-                          <span className="flex items-center gap-1.5 shrink-0">
-                            {song.key && (
-                              <span className="text-caption font-mono px-1.5 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)]">
-                                {song.key}
-                              </span>
-                            )}
-                            <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" aria-hidden="true" />
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
+                  <RepertoireList songs={privilege.songs} compact />
                 </div>
               )}
 

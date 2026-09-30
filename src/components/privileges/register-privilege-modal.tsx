@@ -14,8 +14,7 @@ import {
   removeBackingVocal,
 } from '@/lib/privilege-storage'
 import { useProfile } from '@/components/providers/profile-provider'
-import { SongAutocomplete } from '@/components/privileges/song-autocomplete'
-import { sameModeKeys } from '@/lib/chords'
+import { RepertoireEditor } from '@/components/songs/repertoire-editor'
 import { Button, Badge, Textarea, Modal } from '@/components/ui'
 import { Guitar, Mic, Users, Music, Calendar, Trash2, CheckCircle2, Clock, X } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
@@ -189,15 +188,6 @@ export function RegisterPrivilegeModal({
     }
   }
 
-  const handleAddSong = (newSong: PrivilegeSongItem) => {
-    // The new row in the list is the feedback; a toast would cover the next pick
-    updateDraft({ songs: [...songs, newSong] })
-  }
-
-  const handleRemoveSong = (index: number) => {
-    updateDraft({ songs: songs.filter((_, i) => i !== index) })
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -319,9 +309,6 @@ export function RegisterPrivilegeModal({
     onClose()
   }
 
-  const handleChangeSongKey = (index: number, newKey: string) => {
-    updateDraft({ songs: songs.map((s, i) => (i === index ? { ...s, key: newKey } : s)) })
-  }
 
   return (
     <Modal
@@ -440,52 +427,12 @@ export function RegisterPrivilegeModal({
             Mi listado de alabanzas ({songs.length})
           </p>
 
-          <SongAutocomplete onAddSong={handleAddSong} disabled={loading} selectedSongs={songs} />
-
-          {songs.length === 0 ? (
-            <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)]">
-              No has seleccionado canciones aún. Busca en el catálogo de arriba o propone una alabanza nueva.
-            </p>
-          ) : (
-            <ol className="space-y-2">
-              {songs.map((song, idx) => (
-                <li
-                  key={idx}
-                  className="p-2.5 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3"
-                >
-                  <span className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">
-                    <span className="font-mono text-[var(--text-tertiary)] text-caption w-5 shrink-0">{idx + 1}.</span>
-                    <Music className="w-4 h-4 text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
-                    <span className="text-sm font-medium text-[var(--text-primary)] truncate">{song.title}</span>
-                  </span>
-
-                  <label className="flex items-center gap-2 flex-1 sm:flex-none pl-7 sm:pl-0">
-                    <span className="text-caption font-mono text-[var(--text-tertiary)] uppercase">Tono</span>
-                    <select
-                      value={song.key || 'C'}
-                      onChange={(e) => handleChangeSongKey(idx, e.target.value)}
-                      className="flex-1 sm:flex-none h-11 sm:h-8 bg-[var(--bg-active)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius)] text-base sm:text-xs px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
-                    >
-                      {sameModeKeys(song.key).map((k) => (
-                        <option key={k.code} value={k.code} className="bg-[var(--bg-raised)] text-[var(--text-primary)]">
-                          {k.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSong(idx)}
-                    className="touch-target sm:min-h-8 sm:min-w-8 flex items-center justify-center rounded-[var(--radius)] text-[var(--text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--bg-hover)] transition-colors shrink-0"
-                    aria-label={`Quitar ${song.title}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </li>
-              ))}
-            </ol>
-          )}
+          <RepertoireEditor
+            songs={songs}
+            onChange={(next) => updateDraft({ songs: next })}
+            disabled={loading}
+            emptyText="No has seleccionado alabanzas aún. Busca en el catálogo de arriba o propone una nueva."
+          />
         </div>
 
         {takesBackingVocals && (
