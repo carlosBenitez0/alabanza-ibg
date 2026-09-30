@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Building2, Calendar, Check, Clock, MapPin, Users, X, FileText } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Check, Clock, MapPin, Users, X, FileText, ListMusic } from 'lucide-react'
+import { RepertoireList } from '@/components/songs/repertoire-list'
+import type { PrivilegeSongItem } from '@/types/privileges'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useToast } from '@/components/providers/toast-provider'
 import { useSupabase } from '@/hooks/use-supabase'
@@ -27,6 +29,7 @@ interface EventDetail {
   end_time: string | null
   location: string | null
   notes: string | null
+  songs: PrivilegeSongItem[] | null
 }
 
 const parseLocalDate = (iso: string) => {
@@ -197,6 +200,16 @@ export default function EventDetailPage() {
               )}
             </div>
           ))}
+        </section>
+      )}
+
+      {event.songs && event.songs.length > 0 && (
+        <section className="space-y-3" aria-labelledby="repertoire-title">
+          <h2 id="repertoire-title" className="text-base font-bold flex items-center gap-2">
+            <ListMusic className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+            Repertorio ({event.songs.length})
+          </h2>
+          <RepertoireList songs={event.songs} />
         </section>
       )}
 
