@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getAuthErrorMessage, safeRedirect } from "@/lib/utils";
+import { resendSignupConfirmation } from "@/lib/auth-email";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,6 +54,8 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Password login was rejected because the signup email was never confirmed
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const authErrorParam = searchParams.get("error");
   const isExpired = authErrorParam === "otp_expired" || authErrorParam === "access_denied" || authErrorParam === "invalid_link" || authErrorParam === "expired";
@@ -87,6 +90,7 @@ function LoginPageContent() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     setError("");
+    setUnconfirmed(false);
 
     const { error } = await supabase.auth
       .signInWithPassword({ email: data.email, password: data.password })
@@ -95,6 +99,7 @@ function LoginPageContent() {
     if (error) {
       const msg = getAuthErrorMessage(error.message);
       setError(msg);
+      setUnconfirmed(error.message.includes("Email not confirmed"));
       toast({
         title: "Error de ingreso",
         description: msg,
@@ -122,12 +127,10 @@ function LoginPageContent() {
       return;
     }
     setResending(true);
-    const { error } = await supabase.auth
-      .resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } })
-      .catch((e: Error) => ({ error: e }));
+    const errorMessage = await resendSignupConfirmation(supabase, email);
     setResending(false);
-    if (error) {
-      toast({ title: "No se pudo reenviar", description: getAuthErrorMessage(error.message), variant: "destructive" });
+    if (errorMessage) {
+      toast({ title: "No se pudo reenviar", description: getAuthErrorMessage(errorMessage), variant: "destructive" });
     } else {
       toast({ title: "Correo reenviado", description: `Revisa ${email} y abre el enlace nuevo (el anterior ya no sirve).`, variant: "success" });
     }
@@ -180,12 +183,12 @@ function LoginPageContent() {
         <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-5 sm:p-8 space-y-5 sm:space-y-6">
           {justRegistered && (
             <div
-              className="p-3 rounded-[var(--radius-md)] bg-[var(--color-success-dark)]/20 border border-[var(--color-success)]/30 flex items-center gap-2.5"
+              className="p-3 rounded-[var(--radius-md)] bg-[var(--color-success-dark)]/20 border border-[var(--color-success)]/30 flex items-start gap-2.5"
               role="status"
             >
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--color-success)]" />
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--color-success)] mt-0.5" />
               <p className="text-sm text-[var(--color-success)]">
-                ¡Cuenta creada exitosamente! Por favor inicia sesión.
+                ¡Cuenta creada! Antes de iniciar sesión, abre el enlace que te enviamos por correo para confirmar tu cuenta.
               </p>
             </div>
           )}
@@ -215,7 +218,15 @@ function LoginPageContent() {
               role="alert"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--color-error)] mt-0.5" />
-              <p className="text-sm text-[var(--color-error)]">{error}</p>
+              <div className="space-y-2 min-w-0">
+                <p className="text-sm text-[var(--color-error)]">{error}</p>
+                {unconfirmed && !isExpired && (
+                  <Button type="button" variant="outline" size="sm" onClick={resendConfirmation} loading={resending} fullWidthMobile>
+                    <Mail className="w-4 h-4" />
+                    Reenviar correo de confirmación
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

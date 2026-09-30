@@ -5,21 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getAuthErrorMessage } from "@/lib/utils";
+import { getWebmailFor, resendSignupConfirmation } from "@/lib/auth-email";
 import { passwordSchema } from "@/lib/password";
 import { PasswordChecklist } from "@/components/auth/auth-card";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSupabase } from "@/hooks/use-supabase";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, buttonVariants } from "@/components/ui";
+import { useToast } from "@/components/providers/toast-provider";
 import {
   Mail,
+  MailCheck,
   Lock,
   User,
   Phone,
   Eye,
   EyeOff,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import { useGsapMountReveal } from "@/hooks/use-gsap-reveal";
 
@@ -53,9 +57,13 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Email the confirmation link was sent to; switches the card to the "check your inbox" step
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const cardRef = useGsapMountReveal<HTMLDivElement>({
     from: "bottom",
@@ -108,11 +116,30 @@ export default function RegisterPage() {
       setError(getAuthErrorMessage(authError.message));
     } else if (authData.user?.identities?.length === 0) {
       setError("Este email ya está registrado");
+    } else if (authData.session) {
+      // Email confirmation is disabled in Supabase: the user is already signed in
+      router.push("/dashboard");
+      router.refresh();
+      return;
     } else {
-      router.push("/login?registered=true");
+      setSentTo(data.email.trim());
     }
     setLoading(false);
   };
+
+  const handleResend = async () => {
+    if (!sentTo) return;
+    setResending(true);
+    const errorMessage = await resendSignupConfirmation(supabase, sentTo);
+    setResending(false);
+    if (errorMessage) {
+      toast({ title: "No se pudo reenviar", description: getAuthErrorMessage(errorMessage), variant: "destructive" });
+    } else {
+      toast({ title: "Correo reenviado", description: `Revisa ${sentTo} y abre el enlace nuevo (el anterior ya no sirve).`, variant: "success" });
+    }
+  };
+
+  const webmail = sentTo ? getWebmailFor(sentTo) : null;
 
   return (
     <div className="min-h-dvh flex items-start sm:items-center justify-center bg-[var(--bg-page)] px-4 pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] sm:py-12 text-[var(--text-primary)]">
@@ -126,14 +153,71 @@ export default function RegisterPage() {
             </span>
           </Link>
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
-            Crear Cuenta
+            {sentTo ? "Confirma tu correo" : "Crear Cuenta"}
           </h1>
           <p className="text-sm text-[var(--text-tertiary)] mt-1">
-            Únete a tu ministerio de alabanza
+            {sentTo ? "Un último paso para activar tu cuenta" : "Únete a tu ministerio de alabanza"}
           </p>
         </div>
 
-        {/* Form Card */}
+        {sentTo ? (
+          <div
+            className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-5 sm:p-8 space-y-5"
+            role="status"
+          >
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-success-dark)]/30 border border-[var(--color-success)]/30 flex items-center justify-center">
+                <MailCheck className="w-5 h-5 text-[var(--color-success)]" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 space-y-1.5">
+                <p className="font-semibold text-[var(--text-primary)]">Revisa tu correo</p>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Te enviamos un enlace de confirmación a{" "}
+                  <strong className="text-[var(--text-primary)] break-all">{sentTo}</strong>. Ábrelo para activar tu
+                  cuenta; hasta entonces no podrás iniciar sesión.
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  ¿No lo ves? Busca en Spam o Promociones. Puede tardar un par de minutos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {webmail && (
+                <a
+                  href={webmail.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ size: "lg", className: "w-full" })}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Abrir {webmail.name}
+                </a>
+              )}
+              <Button
+                variant={webmail ? "outline" : "primary"}
+                size="lg"
+                className="w-full"
+                onClick={handleResend}
+                loading={resending}
+              >
+                <Mail className="w-4 h-4" />
+                Reenviar correo
+              </Button>
+            </div>
+
+            <p className="pt-1 text-center text-sm text-[var(--text-tertiary)]">
+              ¿Ya confirmaste?{" "}
+              <Link
+                href="/login"
+                className="inline-flex items-center min-h-11 px-1 text-[var(--text-primary)] underline-offset-4 hover:underline font-medium transition-colors"
+              >
+                Inicia sesión
+              </Link>
+            </p>
+          </div>
+        ) : (
+        /* Form Card */
         <div className="bg-[var(--bg-raised)] rounded-[var(--radius-xl)] border border-[var(--border-normal)] p-5 sm:p-8 space-y-5 sm:space-y-6">
           {error && (
             <div
@@ -253,6 +337,7 @@ export default function RegisterPage() {
             </Link>
           </p>
         </div>
+        )}
       </div>
     </div>
   );
