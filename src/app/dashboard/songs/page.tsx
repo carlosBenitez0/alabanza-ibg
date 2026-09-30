@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncData } from '@/hooks/use-async-data'
+import { useToast } from '@/components/providers/toast-provider'
+import { normalizeSongTitle } from '@/lib/song-links'
 import { useSupabase } from '@/hooks/use-supabase'
 import { CatalogSong } from '@/types/privileges'
 import { getLocalSongs, mergeSongs } from '@/lib/song-storage'
@@ -18,8 +21,44 @@ function getKeyLabel(keyCode?: string | null) {
   return ALL_MUSIC_KEYS.find((k) => k.code === keyCode)?.label ?? keyCode
 }
 
+/**
+ * Opens the tablature named in the URL (?song=<id> or ?title=<title>), used by
+ * the privilege song lists. Isolated so useSearchParams only suspends this bit.
+ */
+function SongDeepLink({
+  songs,
+  loading,
+  onOpen,
+}: {
+  songs: CatalogSong[]
+  loading: boolean
+  onOpen: (song: CatalogSong) => void
+}) {
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const songId = searchParams.get('song')
+  const title = searchParams.get('title')
+  const request = songId || title ? `${songId}|${title}` : null
+  const handled = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!request || loading || handled.current === request) return
+    handled.current = request
+    const wanted = title ? normalizeSongTitle(title) : null
+    const song =
+      (songId && songs.find((s) => s.id === songId)) ||
+      (wanted && songs.find((s) => normalizeSongTitle(s.title) === wanted)) ||
+      null
+    if (song) onOpen(song)
+    else toast({ title: 'No se encontró la alabanza', description: 'Puede que se haya eliminado del catálogo.', variant: 'warning' })
+  }, [request, loading, songs, songId, title, onOpen, toast])
+
+  return null
+}
+
 export default function SongsPage() {
   const supabase = useSupabase()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -45,6 +84,12 @@ export default function SongsPage() {
     setIsTabModalOpen(true)
   }
 
+  const handleCloseTabModal = () => {
+    setIsTabModalOpen(false)
+    // Drop the ?song= deep link so a reload doesn't reopen the modal
+    if (window.location.search) router.replace('/dashboard/songs', { scroll: false })
+  }
+
   const q = searchQuery.trim().toLowerCase()
   const filteredSongs = songs.filter(
     (song) => song.title.toLowerCase().includes(q) || (song.default_key && song.default_key.toLowerCase().includes(q))
@@ -56,9 +101,12 @@ export default function SongsPage() {
       <TablatureModal
         song={selectedTabSong}
         isOpen={isTabModalOpen}
-        onClose={() => setIsTabModalOpen(false)}
+        onClose={handleCloseTabModal}
         onSuccess={fetchSongs}
       />
+      <Suspense fallback={null}>
+        <SongDeepLink songs={songs} loading={loading} onOpen={handleOpenTabModal} />
+      </Suspense>
 
       <PageHeader
         ref={headerRef}
