@@ -113,7 +113,7 @@ export default function SongsPage() {
 
       <PageHeader
         ref={headerRef}
-        title="Repertorio de Alabanzas"
+        title="Repertorio"
         description="Catálogo del ministerio. Toca cualquier alabanza para ver sus acordes o tablatura."
         actionsDesktopOnly
         actions={
@@ -192,7 +192,7 @@ export default function SongsPage() {
                       <span className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-tertiary)]">
                         <span className="font-mono">{song.default_key || '—'}</span>
                         {song.bpm && <span className="font-mono">· {song.bpm} BPM</span>}
-                        <span className={cn('flex items-center gap-1', hasTab && 'text-[var(--color-success)]')}>
+                        <span className={cn('flex items-center gap-1', hasTab && 'text-[var(--text-primary)]')}>
                           · <FileText className="w-3 h-3" aria-hidden="true" />
                           {hasTab ? 'Tablatura' : 'Sin tablatura'}
                         </span>
@@ -220,7 +220,7 @@ export default function SongsPage() {
                         </span>
                       )}
                       <span className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
-                        <span className={cn('font-medium flex items-center gap-1.5', hasTab ? 'text-[var(--color-success)]' : 'text-[var(--text-tertiary)]')}>
+                        <span className={cn('font-medium flex items-center gap-1.5', hasTab ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]')}>
                           <FileText className={cn('w-3.5 h-3.5', !hasTab && 'opacity-40')} aria-hidden="true" />
                           {hasTab ? 'Tablatura disponible' : 'Tablatura no disponible'}
                         </span>

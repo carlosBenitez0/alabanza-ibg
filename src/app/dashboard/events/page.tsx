@@ -283,7 +283,7 @@ function MobileMonth({
               aria-label={`${format(day, "EEEE d 'de' MMMM", { locale: es })}${count ? `, ${count} privilegios` : ''}`}
               className={cn(
                 'relative aspect-square min-h-11 flex flex-col items-center justify-center rounded-[var(--radius-md)] text-sm font-mono transition-colors',
-                !inMonth && 'text-[var(--text-disabled)]',
+                !inMonth && 'text-[var(--color-gs-7)]',
                 inMonth && !selected && 'text-[var(--text-secondary)] active:bg-[var(--bg-hover)]',
                 today && !selected && 'ring-1 ring-inset ring-[var(--border-strong)] text-[var(--text-primary)] font-bold',
                 selected && 'bg-[var(--text-primary)] text-[var(--text-inverse)] font-bold'
@@ -363,12 +363,17 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
             key={dateKey}
             className={cn(
               'min-h-[110px] p-2 border-r border-b border-[var(--border-subtle)] flex flex-col',
-              !isCurrentMonth && 'opacity-30 bg-[var(--bg-page)]',
+              !isCurrentMonth && 'bg-[var(--bg-page)]',
               isTodayDate && 'bg-[var(--bg-surface)] ring-1 ring-inset ring-[var(--text-primary)]'
             )}
           >
             <div className="flex items-center justify-between">
-              <span className={cn('text-xs font-mono font-bold', isTodayDate ? 'text-[var(--color-gs-12)]' : 'text-[var(--text-secondary)]')}>
+              <span
+                className={cn(
+                  'text-xs font-mono font-bold',
+                  isTodayDate ? 'text-[var(--color-gs-12)]' : isCurrentMonth ? 'text-[var(--text-secondary)]' : 'text-[var(--color-gs-7)]'
+                )}
+              >
                 {format(day, 'd')}
               </span>
               {dayPrivileges.length > 0 && (

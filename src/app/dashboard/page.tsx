@@ -19,8 +19,8 @@ import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
 import { cn } from '@/lib/utils'
 
 const quickLinks = [
-  { href: '/dashboard/weekly-schedule', label: 'Tabla Semanal Completa', icon: ListMusic },
-  { href: '/dashboard/songs', label: 'Repertorio de Alabanzas', icon: Music2 },
+  { href: '/dashboard/weekly-schedule', label: 'Tabla Semanal', icon: ListMusic },
+  { href: '/dashboard/songs', label: 'Repertorio', icon: Music2 },
   { href: '/dashboard/events', label: 'Mi Calendario', icon: Calendar },
 ]
 
@@ -70,7 +70,7 @@ export default function DashboardPage() {
   if (isMusician) {
     return (
       <MusicianDashboard
-        firstName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+        firstName={profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0]}
         instruments={getInstrumentLabels(profile?.instruments)}
         privileges={data.singing}
         onChanged={reload}
@@ -83,7 +83,8 @@ export default function DashboardPage() {
     setIsModalOpen(true)
   }
 
-  const firstName = user?.user_metadata?.full_name || user?.email?.split('@')[0]
+  // profiles is what the profile page edits; auth metadata only holds the signup name
+  const firstName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0]
 
   return (
     <div className="space-y-6 sm:space-y-8 text-[var(--text-primary)]">
@@ -107,12 +108,12 @@ export default function DashboardPage() {
         actions={
           <Button onClick={() => handleOpenModal()}>
             <Plus className="w-4 h-4" />
-            Registrar / Editar Mi Privilegio
+            Registrar mi privilegio
           </Button>
         }
       />
 
-      <Fab icon={<Plus />} label="Mi privilegio" onClick={() => handleOpenModal()} />
+      <Fab icon={<Plus />} label="Registrar" onClick={() => handleOpenModal()} />
 
       <div ref={contentRef} className="grid gap-6 sm:gap-8 lg:grid-cols-3">
         {/* My privileges this week */}
@@ -142,7 +143,7 @@ export default function DashboardPage() {
               action={
                 <Button onClick={() => handleOpenModal()} fullWidthMobile>
                   <Plus className="w-4 h-4" />
-                  Registrar Mi Privilegio Ahora
+                  Registrar mi privilegio
                 </Button>
               }
             />
@@ -407,7 +408,7 @@ function MyPrivilegeCard({
         <div className="pt-3 border-t border-[var(--border-subtle)] flex sm:justify-end">
           <Button size="sm" variant="outline" onClick={onEdit} fullWidthMobile>
             <Pencil className="w-4 h-4" />
-            Editar Mi Privilegio y Lista
+            Editar privilegio
           </Button>
         </div>
       </CardContent>

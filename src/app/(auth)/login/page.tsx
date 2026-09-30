@@ -34,16 +34,7 @@ const loginSchema = z.object({
     .min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
-const magicLinkSchema = z.object({
-  magicEmail: z
-    .string()
-    .trim()
-    .min(1, "El email es requerido")
-    .email("Ingresa un correo electrónico válido"),
-});
-
 type LoginForm = z.infer<typeof loginSchema>;
-type MagicLinkForm = z.infer<typeof magicLinkSchema>;
 
 function LoginPageContent() {
   const router = useRouter();
@@ -70,20 +61,13 @@ function LoginPageContent() {
     register,
     handleSubmit,
     getValues,
+    trigger,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: "onChange",
   });
-
-  const {
-    register: registerMagic,
-    handleSubmit: handleMagicSubmit,
-    formState: { errors: magicErrors },
-  } = useForm<MagicLinkForm>({
-    resolver: zodResolver(magicLinkSchema),
-    mode: "onChange",
-  });
+  const [sendingLink, setSendingLink] = useState(false);
 
   const supabase = useSupabase();
 
@@ -136,28 +120,26 @@ function LoginPageContent() {
     }
   };
 
-  const onMagicLinkSubmit = async (data: MagicLinkForm) => {
-    setLoading(true);
+  // Passwordless sign-in to the same email typed above (no second email field)
+  const sendMagicLink = async () => {
+    if (!(await trigger("email"))) return;
+    const email = getValues("email").trim();
+    setSendingLink(true);
     const { error } = await supabase.auth
       .signInWithOtp({
-        email: data.magicEmail,
+        email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
         },
       })
       .catch((e: Error) => ({ error: e }));
+    setSendingLink(false);
 
     if (error) {
-      const msg = getAuthErrorMessage(error.message);
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "No se pudo enviar el enlace", description: getAuthErrorMessage(error.message), variant: "destructive" });
     } else {
-      toast({
-        title: "Revisa tu email",
-        description: `Te enviamos un enlace mágico a ${data.magicEmail}`,
-        variant: "success",
-      });
+      toast({ title: "Revisa tu correo", description: `Te enviamos un enlace para entrar a ${email}.`, variant: "success" });
     }
-    setLoading(false);
   };
 
   return (
@@ -289,48 +271,27 @@ function LoginPageContent() {
               size="lg"
               loading={loading}
             >
-              Iniciar Sesión
+              Iniciar sesión
             </Button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[var(--border-subtle)]" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-[var(--bg-raised)] text-[var(--text-tertiary)] font-mono">
-                O entra con
-              </span>
-            </div>
-          </div>
-
-          {/* Magic Link */}
-          <form
-            onSubmit={handleMagicSubmit(onMagicLinkSubmit)}
-            className="space-y-3"
-            noValidate
-          >
-            <Input
-              label="Email para enlace mágico"
-              type="email"
-              placeholder="tu@email.com"
-              error={magicErrors.magicEmail?.message}
-              leadingIcon={<Mail className="w-4 h-4" />}
-              {...registerMagic("magicEmail")}
-              autoComplete="email"
-              disabled={loading}
-            />
+          {/* Passwordless: uses the email already typed above */}
+          <div className="pt-5 border-t border-[var(--border-subtle)] space-y-2">
             <Button
-              type="submit"
+              type="button"
               variant="outline"
               className="w-full"
-              loading={loading}
+              onClick={sendMagicLink}
+              loading={sendingLink}
+              disabled={loading}
             >
-              <Mail className="w-4 h-4 mr-2" />
-              Enviar enlace mágico
+              <Mail className="w-4 h-4" />
+              Enviarme un enlace para entrar
             </Button>
-          </form>
+            <p className="text-xs text-center text-[var(--text-tertiary)]">
+              Sin contraseña: te llega un enlace al correo que escribiste arriba.
+            </p>
+          </div>
 
           <p className="pt-2 text-center text-sm text-[var(--text-tertiary)]">
             ¿No tienes cuenta?{" "}

@@ -46,6 +46,14 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password')
   const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
 
+  // There is no public landing: "/" goes straight to where the visitor belongs
+  if (pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = user ? '/dashboard' : '/login'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+
   // /reset-password needs the recovery session created by /auth/callback
   if (!user && pathname.startsWith('/reset-password')) {
     const url = request.nextUrl.clone()
