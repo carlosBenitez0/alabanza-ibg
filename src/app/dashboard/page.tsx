@@ -5,13 +5,15 @@ import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
-import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
+import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PRIVILEGES_WITH_BACKING_VOCALS, PrivilegeKey } from '@/types/privileges'
 import { getWeekBounds, formatFullSpanishDate, formatISOShortDate } from '@/lib/date-helpers'
 import { fetchPrivileges, orderUserPrivileges } from '@/lib/privilege-storage'
 import { songViewerHref } from '@/lib/song-links'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { Card, CardContent, CardHeader, Button, Badge, PageHeader, PageLoader, EmptyState, Fab, buttonVariants } from '@/components/ui'
-import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil, Mic2 } from 'lucide-react'
+import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil, Mic2, Guitar } from 'lucide-react'
+import { useProfile } from '@/components/providers/profile-provider'
+import { getInstrumentLabels } from '@/lib/roles'
 import { BackingVocals } from '@/components/privileges/backing-vocals'
 import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
 import { cn } from '@/lib/utils'
@@ -24,6 +26,7 @@ const quickLinks = [
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
+  const { profile, isMusician, loading: profileLoading } = useProfile()
   const supabase = useSupabase()
 
   const [selectedPrivilegeKey, setSelectedPrivilegeKey] = useState<PrivilegeKey>('saturday_musician')
@@ -43,20 +46,36 @@ export default function DashboardPage() {
     const asBacking = week
       .filter((p) => p.profile_id !== user?.id && p.backing_vocals?.some((bv) => bv.profile_id === user?.id))
       .sort((a, b) => a.assigned_date.localeCompare(b.assigned_date))
-    return { week, mine, asBacking }
+    // What musicians accompany: every singing privilege of the week, in service order
+    const singing = week
+      .filter((p) => PRIVILEGES_WITH_BACKING_VOCALS.includes(p.privilege_key))
+      .sort((a, b) => a.assigned_date.localeCompare(b.assigned_date))
+    return { week, mine, asBacking, singing }
   }, [supabase, user])
 
   const { data, loading, reload } = useAsyncData(user ? fetchDashboardData : null, {
     week: [] as WeeklyPrivilege[],
     mine: [] as WeeklyPrivilege[],
     asBacking: [] as WeeklyPrivilege[],
+    singing: [] as WeeklyPrivilege[],
   })
   const weeklyMatrix = data.week
   const myWeeklyPrivileges = data.mine
   const backingPrivileges = data.asBacking
 
-  if (authLoading || loading) {
+  if (authLoading || loading || profileLoading) {
     return <PageLoader />
+  }
+
+  if (isMusician) {
+    return (
+      <MusicianDashboard
+        firstName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+        instruments={getInstrumentLabels(profile?.instruments)}
+        privileges={data.singing}
+        onChanged={reload}
+      />
+    )
   }
 
   const handleOpenModal = (key?: PrivilegeKey) => {
@@ -207,14 +226,86 @@ export default function DashboardPage() {
   )
 }
 
-/** Privilege of another singer where the current member is a backing vocal */
-function BackingPrivilegeCard({ privilege, onChanged }: { privilege: WeeklyPrivilege; onChanged: () => void }) {
+/** Musicians accompany the singers: their home is the week's singing privileges and songs */
+function MusicianDashboard({
+  firstName,
+  instruments,
+  privileges,
+  onChanged,
+}: {
+  firstName?: string
+  instruments: string
+  privileges: WeeklyPrivilege[]
+  onChanged: () => void
+}) {
+  return (
+    <div className="space-y-6 sm:space-y-8 text-[var(--text-primary)]">
+      <PageHeader
+        title="Mi Panel"
+        description={
+          <>
+            Bienvenido, <span className="text-[var(--text-primary)] font-semibold">{firstName}</span>
+            {instruments ? ` — ${instruments}` : ' — Músico'}
+          </>
+        }
+      />
+
+      <section className="space-y-3 sm:space-y-4" aria-labelledby="singing-title">
+        <h2 id="singing-title" className="text-base font-bold flex items-center gap-2">
+          <Guitar className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+          Alabanzas de la Semana
+        </h2>
+        <p className="text-sm text-[var(--text-tertiary)] -mt-1">
+          Lo que cantará cada cantante. Toca una alabanza para ver su tablatura en el tono elegido.
+        </p>
+
+        {privileges.length > 0 ? (
+          privileges.map((privilege) => (
+            <BackingPrivilegeCard key={privilege.id} privilege={privilege} onChanged={onChanged} label={null} />
+          ))
+        ) : (
+          <EmptyState
+            icon={<Calendar />}
+            title="Aún no hay privilegios de canto esta semana"
+            description="Cuando los cantantes registren sus alabanzas aparecerán aquí."
+            action={
+              <Link href="/dashboard/weekly-schedule" className={buttonVariants({ variant: 'outline', fullWidthMobile: true })}>
+                Ver tabla semanal
+              </Link>
+            }
+          />
+        )}
+      </section>
+
+      {!instruments && (
+        <p className="text-sm text-[var(--text-tertiary)]">
+          ¿Qué instrumento tocas?{' '}
+          <Link href="/dashboard/profile" className="text-[var(--text-primary)] underline underline-offset-4">
+            Elígelo en tu perfil
+          </Link>
+          .
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Another singer's privilege: as backing vocal, or as the musician who accompanies it */
+function BackingPrivilegeCard({
+  privilege,
+  onChanged,
+  label = 'Corista',
+}: {
+  privilege: WeeklyPrivilege
+  onChanged: () => void
+  label?: string | null
+}) {
   const def = PRIVILEGE_DEFINITIONS.find((p) => p.key === privilege.privilege_key)
   return (
     <Card className="border-[var(--border-subtle)] bg-[var(--bg-raised)]">
       <CardContent className="pt-4 sm:pt-4 space-y-3">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <Badge variant="outline" size="sm">Corista</Badge>
+          {label && <Badge variant="outline" size="sm">{label}</Badge>}
           <h3 className="text-sm font-bold min-w-0 truncate">Privilegio de {privilege.profile_name}</h3>
           <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} size="sm">{def?.dayLabel}</Badge>
         </div>

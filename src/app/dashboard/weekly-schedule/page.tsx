@@ -12,6 +12,7 @@ import { getWeekBounds, formatFullSpanishDate, formatISOShortDate, getNextWeekDa
 import { fetchPrivileges } from '@/lib/privilege-storage'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { BackingVocals } from '@/components/privileges/backing-vocals'
+import { useProfile } from '@/components/providers/profile-provider'
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, SegmentedControl, Fab } from '@/components/ui'
 import { Calendar, Guitar, Mic, Users, Music, Plus, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'
 import { useGsapMountReveal } from '@/hooks/use-gsap-reveal'
@@ -35,6 +36,9 @@ function formatWeekRange(date: Date) {
 
 export default function WeeklySchedulePage() {
   const supabase = useSupabase()
+  // Musicians follow the singers' privileges; they don't register singing slots
+  const { isMusician } = useProfile()
+  const canRegister = !isMusician
 
   const [currentWeekDate, setCurrentWeekDate] = useState(getInitialWeeklyDate)
   // Saturday is always the next service in the displayed week (Sundays jump to next week)
@@ -111,15 +115,19 @@ export default function WeeklySchedulePage() {
               </Button>
             </div>
 
-            <Button className="hidden lg:inline-flex" onClick={() => handleOpenModal('saturday_musician')}>
-              <Plus className="w-4 h-4" />
-              Registrar Mi Privilegio
-            </Button>
+            {canRegister && (
+              <Button className="hidden lg:inline-flex" onClick={() => handleOpenModal('saturday_musician')}>
+                <Plus className="w-4 h-4" />
+                Registrar Mi Privilegio
+              </Button>
+            )}
           </>
         }
       />
 
-      <Fab icon={<Plus />} label="Registrarme" onClick={() => handleOpenModal(mobileDay === 'saturday' ? 'saturday_musician' : 'sunday_lead_vocal', mobileDay)} />
+      {canRegister && (
+        <Fab icon={<Plus />} label="Registrarme" onClick={() => handleOpenModal(mobileDay === 'saturday' ? 'saturday_musician' : 'sunday_lead_vocal', mobileDay)} />
+      )}
 
       {/* Phones/tablets: one day at a time */}
       <div className="lg:hidden sticky top-[calc(var(--header-h)+var(--safe-top))] z-[150] -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
@@ -165,6 +173,7 @@ export default function WeeklySchedulePage() {
                     assignedList={getPrivilegesByKey(def.key)}
                     onOpenModal={(key) => handleOpenModal(key, col.day)}
                     onChanged={reload}
+                    canRegister={canRegister}
                   />
                 ))}
               </div>
@@ -191,11 +200,13 @@ function PrivilegeMatrixSlot({
   assignedList,
   onOpenModal,
   onChanged,
+  canRegister,
 }: {
   definition: typeof PRIVILEGE_DEFINITIONS[0]
   assignedList: WeeklyPrivilege[]
   onOpenModal: (key: PrivilegeKey) => void
   onChanged: () => void
+  canRegister: boolean
 }) {
   return (
     <Card className="border-[var(--border-normal)] bg-[var(--bg-raised)]">
@@ -208,16 +219,18 @@ function PrivilegeMatrixSlot({
             <CardTitle className="text-base font-semibold">{definition.title}</CardTitle>
             <p className="text-xs text-[var(--text-tertiary)]">{definition.description}</p>
           </div>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="sm:w-auto sm:px-2 shrink-0 -mr-2 -mt-1 sm:mr-0 sm:mt-0"
-            onClick={() => onOpenModal(definition.key)}
-            aria-label={`Añadirme a ${definition.title} (${definition.dayLabel})`}
-          >
-            <PlusCircle className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
-            <span className="hidden sm:inline text-xs">Añadir</span>
-          </Button>
+          {canRegister && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="sm:w-auto sm:px-2 shrink-0 -mr-2 -mt-1 sm:mr-0 sm:mt-0"
+              onClick={() => onOpenModal(definition.key)}
+              aria-label={`Añadirme a ${definition.title} (${definition.dayLabel})`}
+            >
+              <PlusCircle className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline text-xs">Añadir</span>
+            </Button>
+          )}
         </div>
       </CardHeader>
 
@@ -225,10 +238,12 @@ function PrivilegeMatrixSlot({
         {assignedList.length === 0 ? (
           <div className="p-3 sm:p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span className="text-sm text-[var(--text-tertiary)] font-mono">Slot libre sin registrar aún</span>
-            <Button size="sm" variant="outline" onClick={() => onOpenModal(definition.key)} fullWidthMobile>
-              <Plus className="w-4 h-4" />
-              Registrarme aquí
-            </Button>
+            {canRegister && (
+              <Button size="sm" variant="outline" onClick={() => onOpenModal(definition.key)} fullWidthMobile>
+                <Plus className="w-4 h-4" />
+                Registrarme aquí
+              </Button>
+            )}
           </div>
         ) : (
           assignedList.map((privilege) => (
