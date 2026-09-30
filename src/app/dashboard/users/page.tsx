@@ -5,7 +5,7 @@ import { useAsyncData } from '@/hooks/use-async-data'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useSupabase } from '@/hooks/use-supabase'
 import { startOfWeek } from 'date-fns'
-import { formatISOShortDate, formatFullSpanishDate } from '@/lib/date-helpers'
+import { formatISOShortDate, formatWeekRange, getCurrentServiceWeekDate } from '@/lib/date-helpers'
 import { Card, CardContent, CardHeader, Badge, PageHeader, PageLoader, EmptyState } from '@/components/ui'
 import { User, Music, Mic, Mic2, Users as UsersIcon, Guitar } from 'lucide-react'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey, WeeklyPrivilege } from '@/types/privileges'
@@ -31,14 +31,15 @@ export default function UsersDirectoryPage() {
   const supabase = useSupabase()
   
   const loadDirectory = useCallback(async () => {
-    // This week's weekend (Saturday and Sunday)
-    const monday = startOfWeek(new Date(), { weekStartsOn: 1 })
+    // Same weekend as the weekly table (on Sundays it already looks at next week)
+    const weekDate = getCurrentServiceWeekDate()
+    const monday = startOfWeek(weekDate, { weekStartsOn: 1 })
     const satDate = new Date(monday)
     satDate.setDate(monday.getDate() + 5)
     const sunDate = new Date(monday)
     sunDate.setDate(monday.getDate() + 6)
     const upcomingDates = [formatISOShortDate(satDate), formatISOShortDate(sunDate)]
-    const weekLabel = `${formatFullSpanishDate(satDate)} - ${formatFullSpanishDate(sunDate)}`
+    const weekLabel = formatWeekRange(weekDate)
 
     const loadProfiles = async () => {
       const full = await supabase.from('profiles').select('id, full_name, role, instruments').order('full_name')
@@ -92,7 +93,7 @@ export default function UsersDirectoryPage() {
     <div className="space-y-5 sm:space-y-6 animate-fade-in">
       <PageHeader
         title="Equipo y Privilegios"
-        description={`Directorio del equipo y sus asignaciones para el fin de semana: ${weekLabel}.`}
+        description={`Quién participa el fin de semana del ${weekLabel}.`}
       />
 
       {users.length === 0 ? (

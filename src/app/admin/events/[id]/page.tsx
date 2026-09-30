@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, UserPlus, Users, MoreHorizontal, ListMusic, Save } from 'lucide-react'
 import { RepertoireEditor } from '@/components/songs/repertoire-editor'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes'
 import { useSupabase } from '@/hooks/use-supabase'
 import { useToast } from '@/components/providers/toast-provider'
 import { Button, Modal, PageHeader, PageLoader, EmptyState, Select, buttonVariants } from '@/components/ui'
@@ -71,6 +72,7 @@ export default function EditEventPage() {
   const [confirmRemove, setConfirmRemove] = useState(false)
   // Unsaved repertoire edits (null = showing what is saved)
   const [songsDraft, setSongsDraft] = useState<PrivilegeSongItem[] | null>(null)
+  useUnsavedChangesWarning(songsDraft !== null)
   const [savingSongs, setSavingSongs] = useState(false)
 
   const loadBase = useCallback(async () => {
@@ -281,7 +283,11 @@ export default function EditEventPage() {
           )}
         </div>
         <p className="text-xs text-[var(--text-tertiary)]">
-          Las alabanzas que el equipo cantará en este evento, en orden y con su tono. El equipo las ve en el detalle del evento.
+          {songsDraft ? (
+            <span className="text-[var(--text-primary)] font-medium">Cambios sin guardar en el repertorio.</span>
+          ) : (
+            'Las alabanzas que el equipo cantará en este evento, en orden y con su tono. El equipo las ve en el detalle del evento.'
+          )}
         </p>
         <RepertoireEditor
           songs={songsDraft ?? event.songs ?? []}

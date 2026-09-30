@@ -55,7 +55,7 @@ export function BottomNav({
                     </span>
                   )}
                 </span>
-                <span>{item.short ?? item.name}</span>
+                <span className="nav-label">{item.short ?? item.name}</span>
                 {showBadge && <span className="sr-only">({unreadCount} sin leer)</span>}
               </Link>
             </li>
@@ -76,7 +76,7 @@ export function BottomNav({
               <span className="absolute top-0 inset-x-5 h-0.5 rounded-b-full bg-[var(--text-primary)]" aria-hidden="true" />
             )}
             <Menu className="w-6 h-6" aria-hidden="true" />
-            <span>Más</span>
+            <span className="nav-label">Más</span>
           </button>
         </li>
       </ul>

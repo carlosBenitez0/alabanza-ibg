@@ -100,3 +100,20 @@ export function getNextWeekDate(date: Date = new Date()): Date {
 export function getPrevWeekDate(date: Date = new Date()): Date {
   return subWeeks(date, 1)
 }
+
+/**
+ * The week the team is preparing for: this week, except on Sunday, when
+ * this week's Saturday is already past and the next one is what matters.
+ */
+export function getCurrentServiceWeekDate(today: Date = new Date()): Date {
+  return today.getDay() === 0 ? getNextWeekDate(today) : today
+}
+
+/** Compact week label, e.g. "5 – 11 de oct" or "29 de sep – 5 de oct". */
+export function formatWeekRange(date: Date): string {
+  const { start, end } = getWeekBounds(date)
+  const sameMonth = start.getMonth() === end.getMonth()
+  return sameMonth
+    ? `${format(start, 'd', { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
+    : `${format(start, "d 'de' MMM", { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
+}

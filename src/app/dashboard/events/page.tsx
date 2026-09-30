@@ -384,7 +384,7 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
                     key={priv.id}
                     type="button"
                     onClick={() => onSelectPrivilege(priv)}
-                    className="w-full text-left p-1.5 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)] transition-colors block group"
+                    className="w-full min-h-11 lg:min-h-0 text-left p-1.5 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] border border-[var(--border-subtle)] transition-colors block group"
                   >
                     <span className="flex items-center justify-between gap-1 text-caption font-semibold">
                       <span className="truncate">{priv.profile_name}</span>

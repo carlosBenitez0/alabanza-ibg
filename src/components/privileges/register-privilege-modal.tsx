@@ -477,7 +477,7 @@ export function RegisterPrivilegeModal({
                       type="button"
                       onClick={() => handleRemoveBacking(b.profile_id)}
                       disabled={loading}
-                      className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--bg-hover)] transition-colors"
+                      className="touch-target sm:min-h-8 sm:min-w-8 -my-1.5 sm:my-0 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--bg-hover)] transition-colors"
                       aria-label={`Quitar a ${b.name} como corista`}
                     >
                       <X className="w-4 h-4" />

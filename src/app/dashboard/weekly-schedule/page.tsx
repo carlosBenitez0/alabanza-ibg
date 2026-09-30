@@ -3,11 +3,17 @@
 import { useState, useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { RepertoireList } from '@/components/songs/repertoire-list'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { useSupabase } from '@/hooks/use-supabase'
 import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/privileges'
-import { getWeekBounds, formatFullSpanishDate, formatISOShortDate, getNextWeekDate, getPrevWeekDate } from '@/lib/date-helpers'
+import {
+  getWeekBounds,
+  formatFullSpanishDate,
+  formatISOShortDate,
+  formatWeekRange,
+  getCurrentServiceWeekDate,
+  getNextWeekDate,
+  getPrevWeekDate,
+} from '@/lib/date-helpers'
 import { fetchPrivileges } from '@/lib/privilege-storage'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { BackingVocals } from '@/components/privileges/backing-vocals'
@@ -19,19 +25,6 @@ import { cn } from '@/lib/utils'
 
 type ServiceDay = 'saturday' | 'sunday'
 
-// Default to next week on Sunday, since this week's Saturday is already past
-function getInitialWeeklyDate() {
-  const today = new Date()
-  return today.getDay() === 0 ? getNextWeekDate(today) : today
-}
-
-function formatWeekRange(date: Date) {
-  const { start, end } = getWeekBounds(date)
-  const sameMonth = start.getMonth() === end.getMonth()
-  return sameMonth
-    ? `${format(start, 'd', { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
-    : `${format(start, "d 'de' MMM", { locale: es })} – ${format(end, "d 'de' MMM", { locale: es })}`
-}
 
 export default function WeeklySchedulePage() {
   const supabase = useSupabase()
@@ -39,7 +32,8 @@ export default function WeeklySchedulePage() {
   const { isMusician } = useProfile()
   const canRegister = !isMusician
 
-  const [currentWeekDate, setCurrentWeekDate] = useState(getInitialWeeklyDate)
+  const [currentWeekDate, setCurrentWeekDate] = useState(() => getCurrentServiceWeekDate())
+  const isCurrentWeek = formatWeekRange(currentWeekDate) === formatWeekRange(getCurrentServiceWeekDate())
   // Saturday is always the next service in the displayed week (Sundays jump to next week)
   const [mobileDay, setMobileDay] = useState<ServiceDay>('saturday')
 
@@ -114,6 +108,12 @@ export default function WeeklySchedulePage() {
               </Button>
             </div>
 
+            {!isCurrentWeek && (
+              <Button variant="outline" size="sm" onClick={() => setCurrentWeekDate(getCurrentServiceWeekDate())}>
+                Esta semana
+              </Button>
+            )}
+
             {canRegister && (
               <Button className="hidden lg:inline-flex" onClick={() => handleOpenModal('saturday_musician')}>
                 <Plus className="w-4 h-4" />
@@ -129,7 +129,7 @@ export default function WeeklySchedulePage() {
       )}
 
       {/* Phones/tablets: one day at a time */}
-      <div className="lg:hidden sticky top-[calc(var(--header-h)+var(--safe-top))] z-[150] -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
+      <div className="unstick-landscape lg:hidden sticky top-[calc(var(--header-h)+var(--safe-top))] z-[150] -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
         <SegmentedControl
           label="Día del servicio"
           value={mobileDay}

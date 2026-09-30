@@ -141,7 +141,7 @@ export function EventForm({
         {...register('organizer')}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
         <Input
           id="event-date"
           label="Fecha"
@@ -161,7 +161,7 @@ export function EventForm({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Input
           id="event-arrival"
           label="Llegada"
@@ -209,11 +209,18 @@ export function EventForm({
         {...register('notes')}
       />
 
+      {/* Phones: when editing, the save bar only floats while there are changes, so it
+          doesn't sit over the team and repertoire sections that save on their own */}
       <div
         className={cn(
-          'fixed sm:static inset-x-0 z-[260] bottom-[calc(var(--bottom-nav-h)+var(--safe-bottom))]',
-          'border-t sm:border-0 border-[var(--border-normal)] bg-[var(--bg-page)]/95 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none',
-          'px-4 py-3 sm:p-0 flex sm:justify-end'
+          'flex sm:justify-end',
+          !defaultValues || isDirty
+            ? cn(
+                'fixed sm:static inset-x-0 z-[260] bottom-[calc(var(--bottom-nav-h)+var(--safe-bottom))] animate-slide-in sm:animate-none',
+                'border-t sm:border-0 border-[var(--border-normal)] bg-[var(--bg-page)]/95 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none',
+                'px-4 py-3 sm:p-0'
+              )
+            : 'static'
         )}
       >
         <Button type="submit" loading={saving} disabled={!isDirty && !!defaultValues} className="w-full sm:w-auto">

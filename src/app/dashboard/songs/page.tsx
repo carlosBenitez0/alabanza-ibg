@@ -127,7 +127,7 @@ export default function SongsPage() {
       <Fab icon={<Plus />} label="Alabanza" onClick={() => setIsAddModalOpen(true)} />
 
       {/* Search stays reachable while scrolling a long catalog */}
-      <div className="sticky top-[calc(var(--header-h)+var(--safe-top))] lg:top-16 z-[150] -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
+      <div className="unstick-landscape sticky top-[calc(var(--header-h)+var(--safe-top))] lg:top-16 z-[150] -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
         <div className="lg:max-w-md">
           <Input
             type="search"

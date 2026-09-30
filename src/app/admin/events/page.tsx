@@ -156,7 +156,7 @@ export default function AdminEventsPage() {
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold truncate">{event.title}</span>
+                            <span className="text-sm font-semibold truncate min-w-0 max-w-full">{event.title}</span>
                             <Badge size="sm" className={getEventTypeColor(event.event_type)}>
                               {getEventTypeLabel(event.event_type)}
                             </Badge>
@@ -167,7 +167,7 @@ export default function AdminEventsPage() {
                                 hasta {format(parseLocalDate(event.end_date), "d 'de' MMM", { locale: es })}
                               </span>
                             )}
-                            {event.organizer && <span className="truncate">{event.organizer}</span>}
+                            {event.organizer && <span className="truncate min-w-0 max-w-full">{event.organizer}</span>}
                             {event.start_time && (
                               <span className="flex items-center gap-1 font-mono">
                                 <Clock className="w-3 h-3" aria-hidden="true" />

@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
         description={canEditRoles ? 'Miembros del ministerio. Toca uno para cambiar su rol.' : 'Miembros del ministerio.'}
       />
 
-      <div className="sticky top-[calc(var(--header-h)+var(--safe-top))] lg:top-16 z-[150] -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
+      <div className="unstick-landscape sticky top-[calc(var(--header-h)+var(--safe-top))] lg:top-16 z-[150] -mx-4 sm:-mx-6 lg:mx-0 px-4 sm:px-6 lg:px-0 py-2 bg-[var(--bg-page)]/90 backdrop-blur-md">
         <div className="lg:max-w-md">
           <Input
             type="search"
