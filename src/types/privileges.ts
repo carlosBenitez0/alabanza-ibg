@@ -65,8 +65,8 @@ export interface PrivilegeSongItem {
   key?: string
 }
 
-/** Singing privileges where other members can join as backing vocals (coristas) */
-export const PRIVILEGES_WITH_BACKING_VOCALS: PrivilegeKey[] = ['saturday_musician', 'sunday_lead_vocal']
+/** Singing and rehearsal privileges where other members can join as backing vocals (coristas) */
+export const PRIVILEGES_WITH_BACKING_VOCALS: PrivilegeKey[] = ['saturday_musician', 'sunday_lead_vocal', 'sunday_rehearsal']
 
 /** A member singing backing vocals in someone else's privilege (the role is per privilege) */
 export interface PrivilegeBackingVocal {

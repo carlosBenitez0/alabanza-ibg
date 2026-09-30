@@ -266,7 +266,7 @@ function MusicianDashboard({
         ) : (
           <EmptyState
             icon={<Calendar />}
-            title="Aún no hay privilegios de canto esta semana"
+            title="Aún no hay alabanzas ni ensayos registrados esta semana"
             description="Cuando los cantantes registren sus alabanzas aparecerán aquí."
             action={
               <Link href="/dashboard/weekly-schedule" className={buttonVariants({ variant: 'outline', fullWidthMobile: true })}>
