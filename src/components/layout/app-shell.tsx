@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Music, X, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getRoleLabel, getRoleWithInstruments } from '@/lib/roles'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useProfile } from '@/components/providers/profile-provider'
 import { useSupabase } from '@/hooks/use-supabase'
@@ -101,8 +102,8 @@ function NavContents({ onClose, onSignOut }: { onClose?: () => void; onSignOut: 
           </span>
           <span className="flex-1 min-w-0">
             <span className="block text-sm lg:text-xs font-medium text-[var(--text-primary)] truncate">{displayName}</span>
-            <span className="block text-caption font-mono text-[var(--text-tertiary)] capitalize">
-              {profile?.role || 'singer'}
+            <span className="block text-caption font-mono text-[var(--text-tertiary)] truncate">
+              {getRoleWithInstruments(profile?.role, profile?.instruments)}
             </span>
           </span>
         </Link>
@@ -246,7 +247,7 @@ export function AppShell({ children, requireAdmin }: { children: ReactNode; requ
 
             <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-raised)] border border-[var(--border-subtle)] text-xs">
               <span className="text-[var(--text-tertiary)] font-mono">Rol:</span>
-              <span className="font-medium capitalize text-[var(--text-primary)]">{profile?.role || 'singer'}</span>
+              <span className="font-medium text-[var(--text-primary)]">{getRoleLabel(profile?.role)}</span>
             </div>
 
             <Link

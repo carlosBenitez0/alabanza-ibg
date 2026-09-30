@@ -16,7 +16,7 @@ import { Mic2, LogOut, X } from 'lucide-react'
  */
 export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivilege; onChanged: () => void }) {
   const { user } = useAuth()
-  const { isAdmin } = useProfile()
+  const { isAdmin, isMusician } = useProfile()
   const supabase = useSupabase()
   const { toast } = useToast()
   const [busy, setBusy] = useState<string | null>(null)
@@ -26,7 +26,8 @@ export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivi
   const vocals = privilege.backing_vocals || []
   const isOwner = user?.id === privilege.profile_id
   const mine = vocals.find((bv) => bv.profile_id === user?.id)
-  const canJoin = Boolean(user) && !isOwner && !mine
+  // Musicians accompany every singer already; joining as backing vocal is for singers
+  const canJoin = Boolean(user) && !isOwner && !mine && !isMusician
 
   const run = async (key: string, action: () => Promise<string | null>, success: string) => {
     setBusy(key)

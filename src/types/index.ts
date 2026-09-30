@@ -1,4 +1,5 @@
-export type UserRole = 'singer' | 'leader' | 'admin'
+export type UserRole = 'singer' | 'musician' | 'leader' | 'admin'
+export type Instrument = 'guitar' | 'drums' | 'trumpet' | 'piano' | 'bass'
 /** Special occasions the team is invited to (regular services are weekly privileges) */
 export type EventType = 'camp' | 'united' | 'invitation' | 'other'
 export type AssignmentRole = 'lead_vocal' | 'choir' | 'musician' | 'sound' | 'media'
@@ -10,6 +11,8 @@ export interface Profile {
   id: string
   full_name: string
   role: UserRole
+  /** What a musician plays */
+  instruments?: Instrument[]
   phone?: string
   created_at: string
   updated_at: string

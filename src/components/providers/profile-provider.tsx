@@ -6,14 +6,17 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { useAsyncData } from '@/hooks/use-async-data'
 
 export interface CurrentProfile {
-  role: 'singer' | 'leader' | 'admin' | string
+  role: 'singer' | 'musician' | 'leader' | 'admin' | string
   full_name: string | null
+  instruments?: string[] | null
 }
 
 interface ProfileContextType {
   profile: CurrentProfile | null
   loading: boolean
   isAdmin: boolean
+  /** Musicians follow the singers' privileges instead of registering their own */
+  isMusician: boolean
   unreadCount: number
   refreshUnread: () => void
   refreshProfile: () => void
@@ -28,8 +31,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const userId = user?.id
 
   const fetchProfile = useCallback(async (): Promise<CurrentProfile | null> => {
-    const { data } = await supabase.from('profiles').select('role, full_name').eq('id', userId).single()
-    return data
+    const { data, error } = await supabase.from('profiles').select('role, full_name, instruments').eq('id', userId).single()
+    if (!error) return data
+    // Database without the musician migration yet
+    const { data: basic } = await supabase.from('profiles').select('role, full_name').eq('id', userId).single()
+    return basic
   }, [supabase, userId])
 
   const fetchUnread = useCallback(async (): Promise<number> => {
@@ -67,6 +73,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const profile = profileQuery.data
   const isAdmin = profile?.role === 'admin' || profile?.role === 'leader'
+  const isMusician = profile?.role === 'musician'
   const loading = authLoading || (!!userId && profileQuery.loading)
 
   return (
@@ -75,6 +82,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         isAdmin,
+        isMusician,
         unreadCount: unreadQuery.data,
         refreshUnread,
         refreshProfile: profileQuery.reload,

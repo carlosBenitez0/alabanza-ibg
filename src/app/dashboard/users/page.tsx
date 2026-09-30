@@ -10,12 +10,14 @@ import { Card, CardContent, CardHeader, Badge, PageHeader, PageLoader, EmptyStat
 import { User, Music, Mic, Mic2, Users as UsersIcon, Guitar } from 'lucide-react'
 import { PRIVILEGE_DEFINITIONS, PrivilegeKey, WeeklyPrivilege } from '@/types/privileges'
 import { fetchPrivileges } from '@/lib/privilege-storage'
+import { getRoleWithInstruments } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 
 interface Profile {
   id: string
   full_name: string | null
   role: string | null
+  instruments?: string[] | null
 }
 
 interface UserWithPrivileges extends Profile {
@@ -38,8 +40,12 @@ export default function UsersDirectoryPage() {
     const upcomingDates = [formatISOShortDate(satDate), formatISOShortDate(sunDate)]
     const weekLabel = `${formatFullSpanishDate(satDate)} - ${formatFullSpanishDate(sunDate)}`
 
+    const loadProfiles = async () => {
+      const full = await supabase.from('profiles').select('id, full_name, role, instruments').order('full_name')
+      return full.error ? supabase.from('profiles').select('id, full_name, role').order('full_name') : full
+    }
     const [profilesRes, weekPrivileges] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, role').order('full_name'),
+      loadProfiles() as Promise<{ data: Profile[] | null }>,
       fetchPrivileges(supabase, { from: upcomingDates[0], to: upcomingDates[1] }),
     ])
 
@@ -120,8 +126,8 @@ export default function UsersDirectoryPage() {
                     <p className="font-semibold text-sm text-[var(--text-primary)] truncate">
                       {u.full_name || 'Usuario Anónimo'}
                     </p>
-                    <p className="text-xs text-[var(--text-tertiary)] capitalize truncate">
-                      {u.role || 'Miembro'}
+                    <p className="text-xs text-[var(--text-tertiary)] truncate">
+                      {getRoleWithInstruments(u.role, u.instruments)}
                     </p>
                   </div>
                 </CardHeader>

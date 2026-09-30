@@ -10,21 +10,18 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { Badge, Button, Input, Modal, PageHeader, PageLoader, EmptyState } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types'
+import { ROLE_OPTIONS, getInstrumentLabels, getRoleLabel, getRoleWithInstruments } from '@/lib/roles'
 
 interface MemberRow {
   id: string
   full_name: string | null
   role: UserRole
   phone: string | null
+  instruments?: string[] | null
 }
 
-const roleOptions: { value: UserRole; label: string; description: string }[] = [
-  { value: 'singer', label: 'Miembro', description: 'Registra sus privilegios y ve la tabla semanal.' },
-  { value: 'leader', label: 'Líder', description: 'Acceso al panel de administración y eventos.' },
-  { value: 'admin', label: 'Administrador', description: 'Todo lo anterior y puede cambiar roles.' },
-]
-
-const roleLabel = (role: string) => roleOptions.find((r) => r.value === role)?.label ?? role
+const roleOptions = ROLE_OPTIONS
+const roleLabel = getRoleLabel
 
 export default function AdminUsersPage() {
   const supabase = useSupabase()
@@ -40,6 +37,8 @@ export default function AdminUsersPage() {
   const canEditRoles = profile?.role === 'admin'
 
   const load = useCallback(async () => {
+    const full = await supabase.from('profiles').select('id, full_name, role, phone, instruments').order('full_name')
+    if (!full.error) return (full.data as MemberRow[]) || []
     const { data } = await supabase.from('profiles').select('id, full_name, role, phone').order('full_name')
     return (data as MemberRow[]) || []
   }, [supabase])
@@ -63,7 +62,11 @@ export default function AdminUsersPage() {
   if (loading) return <PageLoader />
 
   const q = query.trim().toLowerCase()
-  const filtered = members.filter((m) => (m.full_name || '').toLowerCase().includes(q) || m.role.includes(q))
+  const filtered = members.filter(
+    (m) =>
+      (m.full_name || '').toLowerCase().includes(q) ||
+      getRoleWithInstruments(m.role, m.instruments).toLowerCase().includes(q)
+  )
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -112,6 +115,11 @@ export default function AdminUsersPage() {
                       {m.full_name || 'Sin nombre'}
                       {isMe && <span className="font-normal text-[var(--text-tertiary)]"> (tú)</span>}
                     </span>
+                    {m.role === 'musician' && m.instruments && m.instruments.length > 0 && (
+                      <span className="block text-xs text-[var(--text-secondary)] truncate">
+                        {getInstrumentLabels(m.instruments)}
+                      </span>
+                    )}
                     {m.phone && (
                       <span className="flex items-center gap-1 text-xs text-[var(--text-tertiary)] font-mono">
                         <Phone className="w-3 h-3" aria-hidden="true" />
