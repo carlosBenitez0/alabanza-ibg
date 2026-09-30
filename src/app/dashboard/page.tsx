@@ -11,7 +11,8 @@ import { fetchPrivileges, orderUserPrivileges } from '@/lib/privilege-storage'
 import { songViewerHref } from '@/lib/song-links'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
 import { Card, CardContent, CardHeader, Button, Badge, PageHeader, PageLoader, EmptyState, Fab, buttonVariants } from '@/components/ui'
-import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil } from 'lucide-react'
+import { Calendar, Music, Plus, Music2, ListMusic, UserCheck, ArrowRight, Pencil, Mic2 } from 'lucide-react'
+import { BackingVocals } from '@/components/privileges/backing-vocals'
 import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
 import { cn } from '@/lib/utils'
 
@@ -38,15 +39,21 @@ export default function DashboardPage() {
       week.filter((p) => p.profile_id === user?.id),
       formatISOShortDate(new Date())
     )
-    return { week, mine }
+    // Someone else's privilege where this member sings backing vocals
+    const asBacking = week
+      .filter((p) => p.profile_id !== user?.id && p.backing_vocals?.some((bv) => bv.profile_id === user?.id))
+      .sort((a, b) => a.assigned_date.localeCompare(b.assigned_date))
+    return { week, mine, asBacking }
   }, [supabase, user])
 
   const { data, loading, reload } = useAsyncData(user ? fetchDashboardData : null, {
     week: [] as WeeklyPrivilege[],
     mine: [] as WeeklyPrivilege[],
+    asBacking: [] as WeeklyPrivilege[],
   })
   const weeklyMatrix = data.week
   const myWeeklyPrivileges = data.mine
+  const backingPrivileges = data.asBacking
 
   if (authLoading || loading) {
     return <PageLoader />
@@ -104,6 +111,7 @@ export default function DashboardPage() {
                   privilege={privilege}
                   isMain={idx === 0}
                   onEdit={() => handleOpenModal(privilege.privilege_key)}
+                  onChanged={reload}
                 />
               ))}
             </div>
@@ -119,6 +127,18 @@ export default function DashboardPage() {
                 </Button>
               }
             />
+          )}
+
+          {backingPrivileges.length > 0 && (
+            <div className="mt-6 sm:mt-8 space-y-3">
+              <h2 className="text-base font-bold flex items-center gap-2">
+                <Mic2 className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+                Como Corista
+              </h2>
+              {backingPrivileges.map((privilege) => (
+                <BackingPrivilegeCard key={privilege.id} privilege={privilege} onChanged={reload} />
+              ))}
+            </div>
           )}
         </section>
 
@@ -187,14 +207,59 @@ export default function DashboardPage() {
   )
 }
 
+/** Privilege of another singer where the current member is a backing vocal */
+function BackingPrivilegeCard({ privilege, onChanged }: { privilege: WeeklyPrivilege; onChanged: () => void }) {
+  const def = PRIVILEGE_DEFINITIONS.find((p) => p.key === privilege.privilege_key)
+  return (
+    <Card className="border-[var(--border-subtle)] bg-[var(--bg-raised)]">
+      <CardContent className="pt-4 sm:pt-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Badge variant="outline" size="sm">Corista</Badge>
+          <h3 className="text-sm font-bold min-w-0 truncate">Privilegio de {privilege.profile_name}</h3>
+          <Badge variant={def?.day === 'saturday' ? 'brand' : 'secondary'} size="sm">{def?.dayLabel}</Badge>
+        </div>
+        <p className="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)]">
+          <Calendar className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
+          {formatFullSpanishDate(privilege.assigned_date)}
+        </p>
+        {privilege.songs.length > 0 ? (
+          <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {privilege.songs.map((song, idx) => (
+              <li key={idx}>
+                <Link
+                  href={songViewerHref(song)}
+                  className="min-h-11 px-3 py-2 rounded-[var(--radius-md)] flex items-center justify-between gap-2 text-sm border bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--text-tertiary)] active:bg-[var(--bg-hover)] transition-colors"
+                  aria-label={`Ver tablatura de ${song.title}${song.key ? ` en ${song.key}` : ''}`}
+                >
+                  <span className="font-medium min-w-0 truncate">{idx + 1}. {song.title}</span>
+                  {song.key && (
+                    <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
+                      Tono: {song.key}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-[var(--text-tertiary)]">Aún no hay alabanzas registradas en este privilegio.</p>
+        )}
+        <BackingVocals privilege={privilege} onChanged={onChanged} />
+      </CardContent>
+    </Card>
+  )
+}
+
 function MyPrivilegeCard({
   privilege,
   isMain,
   onEdit,
+  onChanged,
 }: {
   privilege: WeeklyPrivilege
   isMain: boolean
   onEdit: () => void
+  onChanged: () => void
 }) {
   const def = PRIVILEGE_DEFINITIONS.find((p) => p.key === privilege.privilege_key)
 
@@ -275,6 +340,8 @@ function MyPrivilegeCard({
             </p>
           )}
         </div>
+
+        <BackingVocals privilege={privilege} onChanged={onChanged} />
 
         {privilege.notes && (
           <p className="p-3 rounded-[var(--radius-md)] text-sm italic text-[var(--text-tertiary)] border bg-[var(--bg-surface)] border-[var(--border-subtle)] break-words">

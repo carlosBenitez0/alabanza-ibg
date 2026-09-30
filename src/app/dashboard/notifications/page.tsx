@@ -7,7 +7,7 @@ import { useCallback } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
 import { Button, PageHeader, PageLoader, EmptyState } from '@/components/ui'
-import { Bell, Calendar, Check, CheckCheck, Clock, Music, ChevronRight } from 'lucide-react'
+import { Bell, Calendar, Check, CheckCheck, Clock, Music, ChevronRight, Mic2 } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
 
 interface Notification {
@@ -28,6 +28,7 @@ function NotificationIcon({ type }: { type: string }) {
     case 'new_song': return <Music className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
     case 'song_list_approved': return <Check className={cn(className, 'text-[var(--color-success)]')} aria-hidden="true" />
     case 'reminder': return <Clock className={cn(className, 'text-[var(--color-warning)]')} aria-hidden="true" />
+    case 'backing_vocal': return <Mic2 className={cn(className, 'text-[var(--color-info)]')} aria-hidden="true" />
     default: return <Bell className={cn(className, 'text-[var(--text-secondary)]')} aria-hidden="true" />
   }
 }
@@ -38,7 +39,7 @@ function getNotificationHref(notification: Notification): { href: string; label:
   if (typeof eventId === 'string' && eventId) {
     return { href: `/dashboard/events/${eventId}`, label: 'Ver evento' }
   }
-  if (notification.type === 'new_privilege') {
+  if (notification.type === 'new_privilege' || notification.type === 'backing_vocal') {
     return { href: '/dashboard/weekly-schedule', label: 'Ver tabla semanal' }
   }
   if (notification.type === 'new_song') {

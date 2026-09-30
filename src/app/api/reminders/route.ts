@@ -95,6 +95,13 @@ export async function GET(req: NextRequest) {
     .in('assigned_date', upcomingDates)
 
   const registeredIds = new Set((registrations || []).map(r => r.profile_id))
+
+  // Quienes ya participan como coristas en el privilegio de otra persona tampoco necesitan recordatorio
+  const { data: backingVocals } = await admin
+    .from('privilege_backing_vocals')
+    .select('profile_id, privilege:weekly_privileges!inner(assigned_date)')
+    .in('privilege.assigned_date', upcomingDates)
+  for (const bv of backingVocals || []) registeredIds.add(bv.profile_id)
   const dateLabel = formatFullSpanishDate(serviceDate)
 
   let sent = 0

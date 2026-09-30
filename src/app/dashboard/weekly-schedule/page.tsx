@@ -11,6 +11,7 @@ import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PrivilegeKey } from '@/types/pr
 import { getWeekBounds, formatFullSpanishDate, formatISOShortDate, getNextWeekDate, getPrevWeekDate } from '@/lib/date-helpers'
 import { fetchPrivileges } from '@/lib/privilege-storage'
 import { RegisterPrivilegeModal } from '@/components/privileges/register-privilege-modal'
+import { BackingVocals } from '@/components/privileges/backing-vocals'
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, SegmentedControl, Fab } from '@/components/ui'
 import { Calendar, Guitar, Mic, Users, Music, Plus, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'
 import { useGsapMountReveal } from '@/hooks/use-gsap-reveal'
@@ -163,6 +164,7 @@ export default function WeeklySchedulePage() {
                     definition={def}
                     assignedList={getPrivilegesByKey(def.key)}
                     onOpenModal={(key) => handleOpenModal(key, col.day)}
+                    onChanged={reload}
                   />
                 ))}
               </div>
@@ -188,10 +190,12 @@ function PrivilegeMatrixSlot({
   definition,
   assignedList,
   onOpenModal,
+  onChanged,
 }: {
   definition: typeof PRIVILEGE_DEFINITIONS[0]
   assignedList: WeeklyPrivilege[]
   onOpenModal: (key: PrivilegeKey) => void
+  onChanged: () => void
 }) {
   return (
     <Card className="border-[var(--border-normal)] bg-[var(--bg-raised)]">
@@ -269,6 +273,8 @@ function PrivilegeMatrixSlot({
                   </ol>
                 </div>
               )}
+
+              <BackingVocals privilege={privilege} onChanged={onChanged} />
 
               {privilege.notes && (
                 <p className="text-sm text-[var(--text-tertiary)] italic pt-1 break-words">&ldquo;{privilege.notes}&rdquo;</p>
