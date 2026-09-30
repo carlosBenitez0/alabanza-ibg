@@ -140,7 +140,7 @@ export default function AdminDashboardPage() {
                           <Badge size="sm" className={cn(getEventTypeColor(event.event_type))}>
                             {getEventTypeLabel(event.event_type)}
                           </Badge>
-                          <span className="text-sm font-medium truncate">{event.title}</span>
+                          <span className="text-sm font-medium truncate min-w-0 max-w-full">{event.title}</span>
                         </span>
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-[var(--text-tertiary)]">
                           <span className="font-mono">{formatDate(`${event.date}T00:00:00`)}</span>

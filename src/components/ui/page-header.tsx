@@ -32,7 +32,7 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2 text-balance">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-2 text-balance break-words [overflow-wrap:anywhere]">
           {icon}
           {title}
         </h1>

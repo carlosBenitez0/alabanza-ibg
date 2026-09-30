@@ -129,6 +129,26 @@
   html:has(#bottom-nav) {
     --toast-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 0.75rem);
   }
+  /* With a modal open its footer holds the actions: toasts move to the top */
+  html:has([aria-modal="true"]) .toast-viewport {
+    top: calc(var(--safe-top) + 0.75rem);
+    bottom: auto;
+  }
+}
+
+/* Phone held sideways: ~375px of height is precious. Compact chrome
+   (icon-only tabs, shorter header) and let the in-page bars scroll away. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --header-h: 3rem;
+    --bottom-nav-h: 3rem;
+  }
+  .nav-label {
+    display: none;
+  }
+  .unstick-landscape {
+    position: static;
+  }
 }
 
 /* ─────────────────────────────────────────

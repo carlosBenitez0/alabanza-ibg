@@ -55,7 +55,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
   return (
     <div
       className={cn(
-        'fixed z-[800] flex flex-col gap-2 pointer-events-none',
+        'toast-viewport fixed z-[800] flex flex-col gap-2 pointer-events-none',
         // Phones: full width, above the bottom nav and home indicator
         'inset-x-3 bottom-[var(--toast-bottom)]',
         // Desktop: bottom-right stack
