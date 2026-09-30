@@ -5,9 +5,10 @@ import { CatalogSong } from '@/types/privileges'
 import { useSupabase } from '@/hooks/use-supabase'
 import { saveLocalSong } from '@/lib/song-storage'
 import { Button, Badge, Textarea, Modal } from '@/components/ui'
-import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Printer, WrapText } from 'lucide-react'
+import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Printer, WrapText, Minus, Plus, RotateCcw, Save } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
-import { ALL_MUSIC_KEYS } from '@/components/privileges/song-autocomplete'
+import { ALL_MUSIC_KEYS, getKeyLabel } from '@/lib/music-keys'
+import { keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
 import { cn } from '@/lib/utils'
 
 interface TablatureModalProps {
@@ -15,9 +16,11 @@ interface TablatureModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  /** Key to show the sheet in when opened (e.g. the key chosen for a privilege) */
+  initialKey?: string | null
 }
 
-export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureModalProps) {
+export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }: TablatureModalProps) {
   const supabase = useSupabase()
   const { toast } = useToast()
 
@@ -29,6 +32,10 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
   const [copied, setCopied] = useState(false)
   // Chord sheets rely on column alignment, so lines scroll sideways unless the user opts in
   const [wrapLines, setWrapLines] = useState(false)
+  // Key the saved sheet is written in, and how many semitones it is shown shifted
+  const [baseKey, setBaseKey] = useState<string | null>(null)
+  const [shift, setShift] = useState(0)
+  const [confirmKeySave, setConfirmKeySave] = useState(false)
 
   const fontSizes = ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl']
 
@@ -40,6 +47,9 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
       setTabContent(song.tablature_content || '')
       setIsEditing(!song.has_tablature && !song.tablature_content)
       setIsFullscreen(false)
+      setBaseKey(song.default_key || null)
+      setShift(semitonesBetween(song.default_key, initialKey))
+      setConfirmKeySave(false)
     }
   }
 
@@ -68,15 +78,47 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
 
   if (!song) return null
 
-  const getKeyLabel = (code?: string | null) => {
-    if (!code) return 'C'
-    const found = ALL_MUSIC_KEYS.find(k => k.code === code)
-    return found ? found.label : code
+  const viewKey = shiftKey(baseKey, shift)
+  const displayContent = transposeSheet(tabContent, shift, keyPrefersFlats(viewKey))
+  const keyText = getKeyLabel(viewKey ?? baseKey) ?? 'Sin tono'
+  const baseMode = parseKey(baseKey)
+  const keyOptions = baseMode ? ALL_MUSIC_KEYS.filter((k) => parseKey(k.code)?.minor === baseMode.minor) : []
+  const shiftLabel = shift > 0 ? `+${shift}` : `${shift}`
+
+  const changeShift = (next: number) => {
+    setShift(normalizeShift(next))
+    setConfirmKeySave(false)
+  }
+
+  const handleSaveInKey = async () => {
+    const content = displayContent.trim()
+    const newKey = viewKey ?? baseKey
+    setLoading(true)
+    saveLocalSong({ ...song, has_tablature: true, tablature_content: content, default_key: newKey })
+    let failed = false
+    if (song.id && !song.id.startsWith('def_') && !song.id.startsWith('song_')) {
+      const { error } = await supabase
+        .from('songs')
+        .update({ has_tablature: true, tablature_content: content, default_key: newKey })
+        .eq('id', song.id)
+      failed = Boolean(error)
+    }
+    setLoading(false)
+    setConfirmKeySave(false)
+    if (failed) {
+      toast({ title: 'No se pudo guardar', description: 'Revisa tu conexión e inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    setTabContent(content)
+    setBaseKey(newKey)
+    setShift(0)
+    toast({ title: 'Tono guardado', description: `"${song.title}" quedó guardada en ${getKeyLabel(newKey) ?? 'el nuevo tono'}.`, variant: 'success' })
+    onSuccess()
   }
 
   const handleCopy = () => {
-    if (!tabContent) return
-    navigator.clipboard.writeText(tabContent)
+    if (!displayContent) return
+    navigator.clipboard.writeText(displayContent)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
     toast({ title: 'Copiado', description: 'Tablatura copiada al portapapeles', variant: 'success' })
@@ -97,9 +139,9 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
 
     const escapeHtml = (value: string) =>
       value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-    const keyLabel = escapeHtml(getKeyLabel(song.default_key))
+    const keyLabel = escapeHtml(keyText)
     const safeTitle = escapeHtml(song.title)
-    const safeContent = escapeHtml(tabContent)
+    const safeContent = escapeHtml(displayContent)
 
     printWindow.document.write(`
       <html>
@@ -256,10 +298,83 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
           </button>
         </>
       )}
-      <button type="button" className={toolButton} onClick={() => setIsEditing(true)}>
+      <button
+        type="button"
+        className={toolButton}
+        onClick={() => {
+          // The editor holds the sheet in its saved key
+          changeShift(0)
+          setIsEditing(true)
+        }}
+      >
         <Edit3 className="w-4 h-4" aria-hidden="true" />
         <span>Editar</span>
       </button>
+    </div>
+  )
+
+  const keyBar = tabContent && (
+    <div className="mb-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Cambiar tono">
+        <span className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)]">Tono</span>
+        <button type="button" className={toolButton} onClick={() => changeShift(shift - 1)} aria-label="Bajar medio tono">
+          <Minus className="w-4 h-4" aria-hidden="true" />
+        </button>
+        {keyOptions.length > 0 ? (
+          <select
+            value={viewKey ?? ''}
+            onChange={(e) => changeShift(semitonesBetween(baseKey, e.target.value))}
+            aria-label="Tono de la tablatura"
+            className="min-h-11 sm:min-h-9 bg-[var(--bg-surface)] border border-[var(--border-normal)] text-[var(--text-primary)] rounded-[var(--radius-md)] text-base sm:text-xs px-2 font-mono focus:outline-none focus:border-[var(--text-primary)]"
+          >
+            {keyOptions.map((k) => (
+              <option key={k.code} value={k.code} className="bg-[var(--bg-raised)] text-[var(--text-primary)]">
+                {k.label}{k.code === baseKey ? ' · original' : ''}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="min-w-11 text-center font-mono text-sm" aria-live="polite">
+            {shift === 0 ? 'Original' : shiftLabel}
+          </span>
+        )}
+        <button type="button" className={toolButton} onClick={() => changeShift(shift + 1)} aria-label="Subir medio tono">
+          <Plus className="w-4 h-4" aria-hidden="true" />
+        </button>
+        {shift !== 0 && (
+          <>
+            <button type="button" className={toolButton} onClick={() => changeShift(0)}>
+              <RotateCcw className="w-4 h-4" aria-hidden="true" />
+              <span>Original</span>
+            </button>
+            <button type="button" className={toolButton} onClick={() => setConfirmKeySave(true)} disabled={loading}>
+              <Save className="w-4 h-4" aria-hidden="true" />
+              <span>Guardar en este tono</span>
+            </button>
+          </>
+        )}
+      </div>
+      {confirmKeySave && (
+        <div
+          role="alert"
+          className="p-3 rounded-[var(--radius-md)] border border-[var(--color-warning)]/40 bg-[var(--color-warning-dark)]/20 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
+        >
+          <p className="text-sm text-[var(--text-primary)] flex-1">
+            {viewKey
+              ? `La tablatura se guardará en ${getKeyLabel(viewKey)} para todos.`
+              : `La tablatura se guardará ${shiftLabel} semitonos para todos.`}{' '}
+            <span className="text-[var(--text-tertiary)]">Siempre se puede volver a transponer.</span>
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setConfirmKeySave(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSaveInKey} loading={loading}>
+              Guardar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -288,7 +403,7 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
       title={
         <span className="flex flex-wrap items-center gap-2">
           {song.title}
-          <Badge variant="brand" size="sm" className="font-mono">{getKeyLabel(song.default_key)}</Badge>
+          <Badge variant="brand" size="sm" className="font-mono">{keyText}</Badge>
         </span>
       }
       description={isFullscreen ? 'Modo escenario · la pantalla se mantiene encendida' : 'Acordes y tablatura del ministerio'}
@@ -315,15 +430,18 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess }: TablatureMo
     >
       {!isEditing ? (
         tabContent ? (
-          <pre
-            className={cn(
-              'p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--bg-page)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)] leading-relaxed overflow-x-auto overscroll-x-contain',
-              wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
-              fontSizes[fontSizeIndex]
-            )}
-          >
-            {tabContent}
-          </pre>
+          <>
+            {keyBar}
+            <pre
+              className={cn(
+                'p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--bg-page)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)] leading-relaxed overflow-x-auto overscroll-x-contain',
+                wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
+                fontSizes[fontSizeIndex]
+              )}
+            >
+              {displayContent}
+            </pre>
+          </>
         ) : (
           <div className="p-6 sm:p-8 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)] space-y-4">
             <FileText className="w-8 h-8 mx-auto" aria-hidden="true" />
