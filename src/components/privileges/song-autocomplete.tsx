@@ -6,17 +6,26 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { CatalogSong, PrivilegeSongItem } from '@/types/privileges'
 import { getLocalSongs, mergeSongs } from '@/lib/song-storage'
 import { ALL_MUSIC_KEYS } from '@/lib/music-keys'
-import { Search, Plus, Music, Loader2, Music2 } from 'lucide-react'
+import { normalizeSongTitle } from '@/lib/song-links'
+import { Search, Plus, Music, Loader2, Music2, Check } from 'lucide-react'
 import { Input, Badge } from '@/components/ui'
 
 interface SongAutocompleteProps {
   onAddSong: (song: PrivilegeSongItem) => void
   disabled?: boolean
+  /** Songs already in the list: shown as "Añadida" and can't be picked again */
+  selectedSongs?: PrivilegeSongItem[]
 }
 
 export { ALL_MUSIC_KEYS }
 
-export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps) {
+export function SongAutocomplete({ onAddSong, disabled, selectedSongs = [] }: SongAutocompleteProps) {
+  // Songs already in the list can't be added twice (matched by id, or by title for songs without one)
+  const selectedIds = new Set(selectedSongs.map((s) => s.song_id).filter(Boolean))
+  const selectedTitles = new Set(selectedSongs.map((s) => normalizeSongTitle(s.title)))
+  const isSelected = (song: { id?: string; title: string }) =>
+    (song.id ? selectedIds.has(song.id) : false) || selectedTitles.has(normalizeSongTitle(song.title))
+
   const supabase = useSupabase()
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -49,6 +58,7 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
   const loading = creating || searching || query.trim() !== debouncedQuery
 
   const handleSelectExisting = (song: CatalogSong) => {
+    if (isSelected(song)) return
     onAddSong({
       song_id: song.id,
       title: song.title,
@@ -58,7 +68,7 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
   }
 
   const handleCreateNewSong = async () => {
-    if (!query.trim()) return
+    if (!query.trim() || isSelected({ title: query.trim() })) return
 
     const newTitle = query.trim()
     setCreating(true)
@@ -86,9 +96,9 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
     }
   }
 
-  const hasExactMatch = suggestions.some(
-    s => s.title.toLowerCase() === query.trim().toLowerCase()
-  )
+  const hasExactMatch =
+    suggestions.some((s) => normalizeSongTitle(s.title) === normalizeSongTitle(query)) ||
+    isSelected({ title: query.trim() })
 
   const getKeyLabel = (code: string) => {
     const found = ALL_MUSIC_KEYS.find(k => k.code === code)
@@ -183,30 +193,42 @@ export function SongAutocomplete({ onAddSong, disabled }: SongAutocompleteProps)
                 No hay alabanzas registradas aún en el catálogo. Escribe el nombre para proponer la primera.
               </li>
             ) : (
-              suggestions.map((song) => (
-                <li key={song.id || song.title}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectExisting(song)}
-                    disabled={disabled}
-                    className="w-full min-h-12 px-3 py-2 text-left hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-2 text-sm disabled:opacity-50"
-                    aria-label={`Añadir ${song.title}`}
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <Music className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
-                      <span className="font-medium text-[var(--text-primary)] truncate">{song.title}</span>
-                    </span>
-                    <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
-                        {getKeyLabel(song.default_key || selectedKey)}
+              suggestions.map((song) => {
+                const added = isSelected(song)
+                return (
+                  <li key={song.id || song.title}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectExisting(song)}
+                      disabled={disabled || added}
+                      className="w-full min-h-12 px-3 py-2 text-left enabled:hover:bg-[var(--bg-hover)] enabled:active:bg-[var(--bg-hover)] transition-colors flex items-center justify-between gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label={added ? `${song.title} (ya está en tu lista)` : `Añadir ${song.title}`}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Music className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                        <span className="font-medium text-[var(--text-primary)] truncate">{song.title}</span>
                       </span>
-                      <span className="w-8 h-8 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-secondary)]">
-                        <Plus className="w-4 h-4" aria-hidden="true" />
+                      <span className="flex items-center gap-2 shrink-0">
+                        {added ? (
+                          <span className="flex items-center gap-1 text-caption font-medium text-[var(--color-success)]">
+                            <Check className="w-4 h-4" aria-hidden="true" />
+                            Añadida
+                          </span>
+                        ) : (
+                          <>
+                            <span className="text-caption font-mono px-2 py-0.5 rounded bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-subtle)]">
+                              {getKeyLabel(song.default_key || selectedKey)}
+                            </span>
+                            <span className="w-8 h-8 rounded-full border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-secondary)]">
+                              <Plus className="w-4 h-4" aria-hidden="true" />
+                            </span>
+                          </>
+                        )}
                       </span>
-                    </span>
-                  </button>
-                </li>
-              ))
+                    </button>
+                  </li>
+                )
+              })
             )}
           </ul>
         </div>

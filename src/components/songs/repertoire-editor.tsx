@@ -32,7 +32,7 @@ export function RepertoireEditor({
 
   return (
     <div className="space-y-3">
-      <SongAutocomplete onAddSong={(song) => onChange([...songs, song])} disabled={disabled} />
+      <SongAutocomplete onAddSong={(song) => onChange([...songs, song])} disabled={disabled} selectedSongs={songs} />
 
       {songs.length === 0 ? (
         <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-center text-sm text-[var(--text-tertiary)]">
