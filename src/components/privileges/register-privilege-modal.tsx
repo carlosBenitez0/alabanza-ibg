@@ -32,6 +32,10 @@ interface PrivilegeForm {
   songs: PrivilegeSongItem[]
   notes: string
   backing: BackingDraft[]
+  /** Database id when this privilege/date is already registered */
+  savedId?: string | null
+  /** Registered already, in the database or only on this device */
+  exists?: boolean
 }
 
 interface RegisterPrivilegeModalProps {
@@ -59,6 +63,7 @@ export function RegisterPrivilegeModal({
   const [selectedPrivilege, setSelectedPrivilege] = useState<PrivilegeKey>(defaultPrivilegeKey)
   const [useNextWeek, setUseNextWeek] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Re-sync the selection each time the modal opens (adjusting state during render,
   // not in an effect, so the first open frame already shows the right privilege)
@@ -70,6 +75,7 @@ export function RegisterPrivilegeModal({
     if (openKey) {
       setSelectedPrivilege(openKey)
       setUseNextWeek(false)
+      setConfirmDelete(false)
       setDraft(null) // discard unsaved edits from a cancelled session
     }
   }
@@ -120,8 +126,9 @@ export function RegisterPrivilegeModal({
     const foundLocal = getLocalPrivileges().find(
       (p) => p.profile_id === userId && p.privilege_key === selectedPrivilege && p.assigned_date === isoShortDate
     )
-    if (foundLocal) return { songs: foundLocal.songs || [], notes: foundLocal.notes || '', backing }
-    if (remote) return { songs: remote.songs || [], notes: remote.notes || '', backing }
+    const savedId = remote?.id ?? null
+    if (foundLocal) return { songs: foundLocal.songs || [], notes: foundLocal.notes || '', backing, savedId, exists: true }
+    if (remote) return { songs: remote.songs || [], notes: remote.notes || '', backing, savedId, exists: true }
     return empty
   }, [supabase, userId, selectedPrivilege, isoShortDate])
 
@@ -289,6 +296,29 @@ export function RegisterPrivilegeModal({
     setLoading(false)
   }
 
+  const alreadyRegistered = Boolean(existing.data.exists)
+
+  const handleDelete = async () => {
+    if (!user) return
+    setLoading(true)
+    const savedId = existing.data.savedId
+    if (savedId) {
+      const { error } = await supabase.from('weekly_privileges').delete().eq('id', savedId)
+      if (error) {
+        setLoading(false)
+        toast({ title: 'No se pudo eliminar', description: 'Inténtalo de nuevo en un momento.', variant: 'destructive' })
+        return
+      }
+    }
+    removeLocalPrivilege(user.id, selectedPrivilege, isoShortDate)
+    toast({ title: 'Privilegio eliminado', description: `"${currentDefinition.title}" del ${formattedSpanishDate}.`, variant: 'success' })
+    setConfirmDelete(false)
+    setDraft(null)
+    setLoading(false)
+    onSuccess()
+    onClose()
+  }
+
   const handleChangeSongKey = (index: number, newKey: string) => {
     updateDraft({ songs: songs.map((s, i) => (i === index ? { ...s, key: newKey } : s)) })
   }
@@ -298,19 +328,45 @@ export function RegisterPrivilegeModal({
       isOpen={isOpen}
       onClose={onClose}
       size="lg"
-      title="Registrar Mi Privilegio"
-      description="Agrega tus alabanzas y confirma tu participación"
+      title={alreadyRegistered ? 'Editar mi privilegio' : 'Registrar mi privilegio'}
+      description={alreadyRegistered ? 'Cambia tus alabanzas o elimina el registro' : 'Agrega tus alabanzas y confirma tu participación'}
       dismissible={!loading}
       footer={
-        <>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button form="privilege-modal-form" type="submit" loading={loading}>
-            <CheckCircle2 className="w-4 h-4" />
-            Guardar Privilegio
-          </Button>
-        </>
+        confirmDelete ? (
+          <>
+            <p className="text-sm text-[var(--text-primary)] sm:mr-auto" role="alert">
+              ¿Eliminar tu privilegio del {formattedSpanishDate}?
+            </p>
+            <Button variant="outline" onClick={() => setConfirmDelete(false)} disabled={loading}>
+              No, conservarlo
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} loading={loading}>
+              <Trash2 className="w-4 h-4" />
+              Sí, eliminar
+            </Button>
+          </>
+        ) : (
+          <>
+            {alreadyRegistered && (
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmDelete(true)}
+                disabled={loading}
+                className="sm:mr-auto text-[var(--color-error)] hover:text-[var(--color-error)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </Button>
+            )}
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button form="privilege-modal-form" type="submit" loading={loading}>
+              <CheckCircle2 className="w-4 h-4" />
+              {alreadyRegistered ? 'Guardar cambios' : 'Registrar privilegio'}
+            </Button>
+          </>
+        )
       }
     >
       <form id="privilege-modal-form" onSubmit={handleSubmit} className="space-y-6">
@@ -327,7 +383,10 @@ export function RegisterPrivilegeModal({
                   key={def.key}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => setSelectedPrivilege(def.key)}
+                  onClick={() => {
+                    setSelectedPrivilege(def.key)
+                    setConfirmDelete(false)
+                  }}
                   className={cn(
                     'min-h-20 p-3 rounded-[var(--radius-md)] border text-left transition-colors cursor-pointer flex flex-col justify-between gap-2',
                     isSelected
