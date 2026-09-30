@@ -23,6 +23,9 @@ export function BottomNav({
 }) {
   const pathname = usePathname()
   const inTab = tabs.some((t) => isNavActive(pathname, t.href))
+  // One indicator that slides between tabs ("Más" is the last slot)
+  const slots = tabs.length + 1
+  const activeSlot = inTab ? tabs.findIndex((t) => isNavActive(pathname, t.href)) : tabs.length
 
   return (
     <nav
@@ -30,7 +33,14 @@ export function BottomNav({
       aria-label="Navegación inferior"
       className="lg:hidden fixed inset-x-0 bottom-0 z-[300] border-t border-[var(--border-subtle)] bg-[var(--bg-page)]/95 backdrop-blur-md pb-safe pl-safe pr-safe"
     >
-      <ul className="flex h-[var(--bottom-nav-h)] items-stretch px-1">
+      <ul className="relative flex h-[var(--bottom-nav-h)] items-stretch px-1">
+        <li
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 left-1 flex justify-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+          style={{ width: `calc((100% - 0.5rem) / ${slots})`, transform: `translateX(${activeSlot * 100}%)` }}
+        >
+          <span className="block h-0.5 w-[calc(100%-2.5rem)] rounded-b-full bg-[var(--text-primary)]" />
+        </li>
         {tabs.map((item) => {
           const active = isNavActive(pathname, item.href)
           const showBadge = item.badge && unreadCount > 0
@@ -44,13 +54,13 @@ export function BottomNav({
                   active ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
                 )}
               >
-                {active && (
-                  <span className="absolute top-0 inset-x-5 h-0.5 rounded-b-full bg-[var(--text-primary)]" aria-hidden="true" />
-                )}
                 <span className="relative">
                   <item.icon className="w-6 h-6" aria-hidden="true" strokeWidth={active ? 2.25 : 1.75} />
                   {showBadge && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] text-caption font-bold leading-[18px] text-center">
+                    <span
+                      key={unreadCount}
+                      className="animate-pop absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--text-primary)] text-[var(--text-inverse)] text-caption font-bold leading-[18px] text-center"
+                    >
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -72,9 +82,6 @@ export function BottomNav({
               !inTab || moreOpen ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
             )}
           >
-            {!inTab && (
-              <span className="absolute top-0 inset-x-5 h-0.5 rounded-b-full bg-[var(--text-primary)]" aria-hidden="true" />
-            )}
             <Menu className="w-6 h-6" aria-hidden="true" />
             <span className="nav-label">Más</span>
           </button>

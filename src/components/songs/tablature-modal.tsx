@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { gsap } from 'gsap'
+import { DURATION, EASE, prefersReducedMotion, staggerFor } from '@/lib/motion'
 import { CatalogSong } from '@/types/privileges'
 import { useSupabase } from '@/hooks/use-supabase'
 import { saveLocalSong } from '@/lib/song-storage'
@@ -8,7 +10,7 @@ import { Button, Badge, Textarea, Modal } from '@/components/ui'
 import { FileText, CheckCircle2, Edit3, Copy, Check, Maximize2, Minimize2, ZoomIn, ZoomOut, Download, WrapText, Minus, Plus, RotateCcw, Save } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
 import { ALL_MUSIC_KEYS, getKeyLabel } from '@/lib/music-keys'
-import { keyCodeFor, keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
+import { isChordLine, keyCodeFor, keyPrefersFlats, normalizeShift, parseKey, semitonesBetween, shiftKey, transposeSheet } from '@/lib/chords'
 import { downloadTablaturePdf, pdfFileName } from '@/lib/tablature-pdf'
 import { cn } from '@/lib/utils'
 
@@ -162,6 +164,28 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
       })
     }
   }
+
+  // The one authored moment: on a key change the chord lines step in the direction
+  // of the change (up when raising, down when lowering) while the lyrics hold still,
+  // so it is obvious that only the chords moved.
+  const sheetRef = useRef<HTMLPreElement>(null)
+  const lastShift = useRef(shift)
+  useLayoutEffect(() => {
+    const delta = normalizeShift(shift - lastShift.current)
+    lastShift.current = shift
+    const sheet = sheetRef.current
+    if (!delta || !sheet || prefersReducedMotion()) return
+    const lines = sheet.querySelectorAll('[data-chord-line]')
+    if (!lines.length) return
+    const tween = gsap.fromTo(
+      lines,
+      { y: delta > 0 ? 7 : -7, opacity: 0.2 },
+      { y: 0, opacity: 1, duration: DURATION.base, ease: EASE.out, stagger: staggerFor(lines.length, 0.012), clearProps: 'transform,opacity' }
+    )
+    return () => {
+      tween.kill()
+    }
+  }, [shift])
 
   if (!song) return null
 
@@ -471,13 +495,19 @@ export function TablatureModal({ song, isOpen, onClose, onSuccess, initialKey }:
           <>
             {keyBar}
             <pre
+              ref={sheetRef}
               className={cn(
                 'p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--bg-page)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)] leading-relaxed overflow-x-auto overscroll-x-contain',
                 wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
                 fontSizes[fontSizeIndex]
               )}
             >
-              {displayContent}
+              {/* One block per line so chord lines can move on their own when the key changes */}
+              {displayContent.split('\n').map((line, i) => (
+                <span key={i} className="block" data-chord-line={isChordLine(line) || undefined}>
+                  {line || ' '}
+                </span>
+              ))}
             </pre>
           </>
         ) : (

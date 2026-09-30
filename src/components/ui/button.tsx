@@ -15,7 +15,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseStyles = [
-  'inline-flex items-center justify-center font-medium select-none',
+  'relative inline-flex items-center justify-center font-medium select-none',
   'transition-all duration-150 ease-out',
   'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-page)]',
   'disabled:pointer-events-none disabled:opacity-30 disabled:cursor-not-allowed',
@@ -100,9 +100,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading}
         {...props}
       >
+        {/* The label stays (invisible) while loading so the button keeps its width */}
+        <span className={cn('inline-flex items-center justify-center gap-[inherit]', loading && 'invisible')}>
+          {children}
+        </span>
         {loading && (
           <svg
-            className="animate-spin h-3.5 w-3.5 flex-shrink-0"
+            className="animate-spin h-3.5 w-3.5 absolute inset-0 m-auto"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -123,7 +127,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </svg>
         )}
-        {!loading && children}
       </button>
     )
   }

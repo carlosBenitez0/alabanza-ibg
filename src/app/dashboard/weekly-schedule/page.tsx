@@ -20,7 +20,7 @@ import { BackingVocals } from '@/components/privileges/backing-vocals'
 import { useProfile } from '@/components/providers/profile-provider'
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, SegmentedControl, Fab } from '@/components/ui'
 import { Calendar, Guitar, Mic, Users, Music, Plus, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'
-import { useGsapMountReveal } from '@/hooks/use-gsap-reveal'
+import { useGsapMountReveal, useGsapReveal } from '@/hooks/use-gsap-reveal'
 import { cn } from '@/lib/utils'
 
 type ServiceDay = 'saturday' | 'sunday'
@@ -41,7 +41,8 @@ export default function WeeklySchedulePage() {
   const [activePrivilegeKey, setActivePrivilegeKey] = useState<PrivilegeKey>('saturday_musician')
   const [allowedDay, setAllowedDay] = useState<ServiceDay | undefined>(undefined)
 
-  const headerRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.5 })
+  const headerRef = useGsapMountReveal<HTMLDivElement>()
+  const columnsRef = useGsapReveal<HTMLDivElement>({ selector: '[data-reveal]' })
 
   const startDateStr = formatISOShortDate(getWeekBounds(currentWeekDate).start)
   const endDateStr = formatISOShortDate(getWeekBounds(currentWeekDate).end)
@@ -147,9 +148,9 @@ export default function WeeklySchedulePage() {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <PageLoader variant="list" rows={3} />
       ) : (
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div ref={columnsRef} className="grid gap-8 lg:grid-cols-2">
           {columns.map((col) => (
             <section
               key={col.day}
@@ -208,7 +209,7 @@ function PrivilegeMatrixSlot({
   canRegister: boolean
 }) {
   return (
-    <Card className="border-[var(--border-normal)] bg-[var(--bg-raised)]">
+    <Card data-reveal className="border-[var(--border-normal)] bg-[var(--bg-raised)]">
       <CardHeader className="border-b border-[var(--border-subtle)]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-normal)] flex items-center justify-center shrink-0">

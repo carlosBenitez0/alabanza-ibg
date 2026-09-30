@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
@@ -10,30 +10,49 @@ interface Toast {
   description?: string
   variant?: 'default' | 'destructive' | 'success' | 'warning'
   action?: React.ReactNode
+  /** Playing its exit before being removed */
+  leaving?: boolean
 }
 
 interface ToastContextType {
   toasts: Toast[]
-  toast: (props: Omit<Toast, 'id'>) => string
+  toast: (props: Omit<Toast, 'id' | 'leaving'>) => string
   dismiss: (id: string) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
+const TOAST_DURATION = 5000
+const EXIT_MS = 200
+const MAX_VISIBLE = 3
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
+  // Two steps: mark as leaving (exit + collapse animation), then remove
   const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), EXIT_MS)
   }, [])
 
-  const toast = useCallback(({ title, description, variant = 'default', action }: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).slice(2)
-    // Keep at most 3 on screen so a burst never covers the page on phones
-    setToasts((prev) => [...prev.slice(-2), { id, title, description, variant, action }])
-    setTimeout(() => dismiss(id), 5000)
-    return id
-  }, [dismiss])
+  const toast = useCallback(
+    ({ title, description, variant = 'default', action }: Omit<Toast, 'id' | 'leaving'>) => {
+      const id = Math.random().toString(36).slice(2)
+      setToasts((prev) => {
+        // Keep at most 3 on screen so a burst never covers the page on phones;
+        // the oldest one leaves with its animation instead of vanishing
+        const visible = prev.filter((t) => !t.leaving)
+        if (visible.length >= MAX_VISIBLE) {
+          const oldest = visible[0].id
+          setTimeout(() => setToasts((p) => p.filter((t) => t.id !== oldest)), EXIT_MS)
+          prev = prev.map((t) => (t.id === oldest ? { ...t, leaving: true } : t))
+        }
+        return [...prev, { id, title, description, variant, action }]
+      })
+      return id
+    },
+    []
+  )
 
   return (
     <ToastContext.Provider value={{ toasts, toast, dismiss }}>
@@ -71,7 +90,36 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
   )
 }
 
+/**
+ * Auto-dismiss timer that pauses while the pointer or focus is on the toast,
+ * so there is time to read it or reach its action.
+ */
+function useAutoDismiss(id: string, onDismiss: (id: string) => void) {
+  const remaining = useRef(TOAST_DURATION)
+  const startedAt = useRef(0)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => {
+    if (paused) return
+    startedAt.current = Date.now()
+    timer.current = setTimeout(() => onDismiss(id), remaining.current)
+    return () => {
+      if (timer.current) clearTimeout(timer.current)
+      remaining.current = Math.max(1000, remaining.current - (Date.now() - startedAt.current))
+    }
+  }, [paused, id, onDismiss])
+
+  return {
+    onPointerEnter: () => setPaused(true),
+    onPointerLeave: () => setPaused(false),
+    onFocus: () => setPaused(true),
+    onBlur: () => setPaused(false),
+  }
+}
+
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
+  const pauseHandlers = useAutoDismiss(toast.id, onDismiss)
   const variantStyles = {
     default: 'border-[var(--border-strong)]',
     destructive: 'border-[var(--color-error)]/40',
@@ -110,10 +158,20 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   }
 
   return (
+    // The outer grid row collapses to 0 on exit, so the stack closes the gap smoothly
     <div
+      className={cn(
+        'grid transition-[grid-template-rows,opacity,transform] duration-200 ease-in',
+        toast.leaving ? 'grid-rows-[0fr] opacity-0 translate-y-1' : 'grid-rows-[1fr]'
+      )}
+    >
+    <div className="min-h-0">
+    <div
+      {...pauseHandlers}
       className={cn(
         'flex items-start gap-3 p-3 sm:p-4 w-full rounded-[var(--radius-lg)] border bg-[var(--bg-raised)] shadow-[var(--shadow-modal)] pointer-events-auto',
         'animate-slide-in',
+        toast.leaving && 'pointer-events-none',
         variantStyles[toast.variant || 'default']
       )}
       role={toast.variant === 'destructive' ? 'alert' : 'status'}
@@ -140,6 +198,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       >
         <X className="h-5 w-5" />
       </button>
+    </div>
+    </div>
     </div>
   )
 }

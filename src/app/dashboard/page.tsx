@@ -32,8 +32,8 @@ export default function DashboardPage() {
   const [selectedPrivilegeKey, setSelectedPrivilegeKey] = useState<PrivilegeKey>('saturday_musician')
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const headerRef = useGsapMountReveal<HTMLDivElement>({ from: 'bottom', duration: 0.5 })
-  const contentRef = useGsapReveal<HTMLDivElement>({ selector: '.dashboard-card', stagger: 0.08 })
+  const headerRef = useGsapMountReveal<HTMLDivElement>()
+  const contentRef = useGsapReveal<HTMLDivElement>({ selector: '.dashboard-card' })
 
   const fetchDashboardData = useCallback(async () => {
     const { start, end } = getWeekBounds(new Date())

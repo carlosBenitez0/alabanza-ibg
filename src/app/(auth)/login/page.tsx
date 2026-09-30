@@ -51,11 +51,7 @@ function LoginPageContent() {
   const authErrorParam = searchParams.get("error");
   const isExpired = authErrorParam === "otp_expired" || authErrorParam === "access_denied" || authErrorParam === "invalid_link" || authErrorParam === "expired";
 
-  const cardRef = useGsapMountReveal<HTMLDivElement>({
-    from: "bottom",
-    duration: 0.6,
-    yOffset: 30,
-  });
+  const cardRef = useGsapMountReveal<HTMLDivElement>({ yOffset: 12 });
 
   const {
     register,

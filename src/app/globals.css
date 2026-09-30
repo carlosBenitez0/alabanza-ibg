@@ -264,12 +264,48 @@ a {
   100% { background-position:  200% 0; }
 }
 
-.animate-fade-in   { animation: fade-in   var(--transition) ease-out; }
-.animate-slide-up  { animation: slide-up  var(--transition) ease-out; }
-.animate-scale-in  { animation: scale-in  var(--transition) ease-out; }
-.animate-slide-in  { animation: slide-in  var(--transition) ease-out; }
-.animate-sheet-up  { animation: sheet-up  var(--transition-slow) cubic-bezier(0.32, 0.72, 0, 1); }
-.animate-shimmer   { animation: shimmer 2s infinite; background-size: 200% 100%; }
+/* Exits run faster than entrances and accelerate away */
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes sheet-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+@keyframes scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.97); }
+}
+
+/* Counter badge: a small nudge when the number changes */
+@keyframes pop {
+  0%   { transform: scale(0.6); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* Route change: content settles in without travel, so navigation feels instant */
+@keyframes page-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* As @utility (not plain classes) so responsive variants like sm:animate-scale-in work.
+   Arrivals decelerate (expo-out), exits accelerate away and run shorter. */
+@utility animate-fade-in   { animation: fade-in 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+@utility animate-slide-up  { animation: slide-up 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+@utility animate-scale-in  { animation: scale-in 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+@utility animate-slide-in  { animation: slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+@utility animate-sheet-up  { animation: sheet-up 320ms cubic-bezier(0.32, 0.72, 0, 1); }
+@utility animate-shimmer   { animation: shimmer 2s infinite; background-size: 200% 100%; }
+@utility animate-fade-out  { animation: fade-out 160ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+@utility animate-sheet-down { animation: sheet-down 220ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+@utility animate-scale-out { animation: scale-out 160ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+@utility animate-pop       { animation: pop 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+@utility animate-page-in   { animation: page-in 180ms cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* ─────────────────────────────────────────
    REDUCED MOTION
@@ -347,18 +383,6 @@ input, select, textarea {
   scroll-margin-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 1rem);
 }
 
-/* ─────────────────────────────────────────
-   GSAP REVEAL BASE
-   Elements with [data-gsap] start hidden;
-   the hook reveals them.
-───────────────────────────────────────── */
-[data-gsap="reveal"] {
-  opacity: 0;
-  clip-path: inset(100% 0 0 0);
-}
-[data-gsap="fade"] {
-  opacity: 0;
-}
 
 /* ─────────────────────────────────────────
    SHIMMER SKELETON

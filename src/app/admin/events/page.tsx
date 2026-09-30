@@ -116,7 +116,7 @@ export default function AdminEventsPage() {
       </div>
 
       {loading ? (
-        <PageLoader />
+        <PageLoader variant="list" />
       ) : error && events.length === 0 ? (
         <ErrorState title="No se pudieron cargar los eventos" onRetry={reload} />
       ) : grouped.length === 0 ? (
