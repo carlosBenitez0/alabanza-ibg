@@ -95,7 +95,7 @@ export default function AdminAssignmentsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <PageHeader title="Asignaciones" description="Quién participa en los próximos eventos y si ya confirmó." />
+      <PageHeader title="Asignaciones" description="Quién participa en los próximos eventos especiales y si ya confirmó." />
 
       <div className="scroll-x flex gap-2 -mx-4 px-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar por estado">
         {filters.map((f) => (
@@ -120,7 +120,7 @@ export default function AdminAssignmentsPage() {
         <EmptyState
           icon={<ClipboardList />}
           title={events.length === 0 ? 'No hay eventos próximos' : 'Nada con este estado'}
-          description={events.length === 0 ? 'Crea un evento para empezar a asignar al equipo.' : undefined}
+          description={events.length === 0 ? 'Cuando nos inviten a un campamento o evento especial, créalo para asignar al equipo.' : undefined}
           action={
             events.length === 0 ? (
               <Link href="/admin/events/new" className={buttonVariants({ fullWidthMobile: true })}>

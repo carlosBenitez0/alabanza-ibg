@@ -36,9 +36,10 @@ export function formatTime(time?: string): string {
 
 export function getEventTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    rehearsal: 'Ensayo',
-    service: 'Culto',
-    saturday: 'Sábado',
+    camp: 'Campamento',
+    united: 'Evento unido',
+    invitation: 'Invitación',
+    other: 'Otro',
   }
   return labels[type] || type
 }
@@ -46,9 +47,10 @@ export function getEventTypeLabel(type: string): string {
 // Event types are structural, not status: grayscale only (DESIGN.md reserves color for states)
 export function getEventTypeColor(type: string): string {
   const colors: Record<string, string> = {
-    rehearsal: 'bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-normal)]',
-    service: 'bg-[var(--text-primary)] text-[var(--text-inverse)] border border-[var(--text-primary)]',
-    saturday: 'bg-[var(--color-gs-3)] text-[var(--color-gs-11)] border border-[var(--color-gs-5)]',
+    camp: 'bg-[var(--text-primary)] text-[var(--text-inverse)] border border-[var(--text-primary)]',
+    united: 'bg-[var(--color-gs-3)] text-[var(--color-gs-11)] border border-[var(--color-gs-5)]',
+    invitation: 'bg-[var(--bg-active)] text-[var(--text-primary)] border border-[var(--border-strong)]',
+    other: 'bg-[var(--bg-active)] text-[var(--text-secondary)] border border-[var(--border-normal)]',
   }
   return colors[type] || 'bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'
 }

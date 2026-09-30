@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Calendar, Check, Clock, MapPin, Users, X, FileText } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Check, Clock, MapPin, Users, X, FileText } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useToast } from '@/components/providers/toast-provider'
 import { useSupabase } from '@/hooks/use-supabase'
@@ -19,11 +19,19 @@ interface EventDetail {
   id: string
   title: string
   event_type: EventType
+  organizer: string | null
   date: string
+  end_date: string | null
+  arrival_time: string | null
   start_time: string | null
   end_time: string | null
   location: string | null
   notes: string | null
+}
+
+const parseLocalDate = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
 }
 
 interface AssignmentRow {
@@ -95,8 +103,8 @@ export default function EventDetailPage() {
     )
   }
 
-  const [y, m, d] = event.date.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
+  const date = parseLocalDate(event.date)
+  const endDate = event.end_date ? parseLocalDate(event.end_date) : null
   const mine = assignments.filter((a) => a.profile_id === user?.id)
 
   return (
@@ -109,18 +117,30 @@ export default function EventDetailPage() {
       <PageHeader
         title={event.title}
         description={
-          <Badge size="sm" className={getEventTypeColor(event.event_type)}>
-            {getEventTypeLabel(event.event_type)}
-          </Badge>
+          <span className="flex flex-wrap items-center gap-2">
+            <Badge size="sm" className={getEventTypeColor(event.event_type)}>
+              {getEventTypeLabel(event.event_type)}
+            </Badge>
+            {event.organizer && (
+              <span className="flex items-center gap-1 text-sm text-[var(--text-secondary)]">
+                <Building2 className="w-3.5 h-3.5" aria-hidden="true" />
+                {event.organizer}
+              </span>
+            )}
+          </span>
         }
       />
 
       <dl className="grid gap-3 sm:grid-cols-3">
         <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-raised)] border border-[var(--border-subtle)]">
           <dt className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)] flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" aria-hidden="true" /> Fecha
+            <Calendar className="w-3.5 h-3.5" aria-hidden="true" /> {endDate ? 'Fechas' : 'Fecha'}
           </dt>
-          <dd className="text-sm font-semibold mt-1 first-letter:uppercase">{format(date, "EEEE d 'de' MMMM", { locale: es })}</dd>
+          <dd className="text-sm font-semibold mt-1 first-letter:uppercase">
+            {endDate
+              ? `${format(date, "EEE d 'de' MMM", { locale: es })} – ${format(endDate, "EEE d 'de' MMM", { locale: es })}`
+              : format(date, "EEEE d 'de' MMMM", { locale: es })}
+          </dd>
         </div>
         <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-raised)] border border-[var(--border-subtle)]">
           <dt className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)] flex items-center gap-1.5">
@@ -130,6 +150,11 @@ export default function EventDetailPage() {
             {event.start_time ? formatTime(event.start_time) : 'Por definir'}
             {event.end_time && ` – ${formatTime(event.end_time)}`}
           </dd>
+          {event.arrival_time && (
+            <dd className="text-xs text-[var(--text-secondary)] mt-1">
+              Llegada: <span className="font-mono">{formatTime(event.arrival_time)}</span>
+            </dd>
+          )}
         </div>
         <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg-raised)] border border-[var(--border-subtle)]">
           <dt className="text-caption font-mono uppercase tracking-wider text-[var(--text-tertiary)] flex items-center gap-1.5">

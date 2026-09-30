@@ -18,16 +18,21 @@ import {
 } from '@/components/admin/assignment-status'
 import { cn } from '@/lib/utils'
 import type { AssignmentRole, AssignmentStatus, EventType } from '@/types'
+import type { PrivilegeSongItem } from '@/types/privileges'
 
 interface EventRecord {
   id: string
   title: string
   event_type: EventType
+  organizer: string | null
   date: string
+  end_date: string | null
+  arrival_time: string | null
   start_time: string | null
   end_time: string | null
   location: string | null
   notes: string | null
+  songs: PrivilegeSongItem[] | null
 }
 
 interface AssignmentRow {
@@ -235,7 +240,10 @@ export default function EditEventPage() {
           defaultValues={{
             title: event.title,
             event_type: event.event_type,
+            organizer: event.organizer ?? '',
             date: event.date,
+            end_date: event.end_date ?? '',
+            arrival_time: event.arrival_time?.slice(0, 5) ?? '',
             start_time: event.start_time?.slice(0, 5) ?? '',
             end_time: event.end_time?.slice(0, 5) ?? '',
             location: event.location ?? '',

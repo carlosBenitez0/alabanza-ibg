@@ -42,7 +42,7 @@ export default function NewEventPage() {
         <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         Eventos
       </Link>
-      <PageHeader title="Nuevo Evento" description="Crea un ensayo, culto o servicio de sábado." />
+      <PageHeader title="Nuevo Evento" description="Un campamento, un evento con otras iglesias o una invitación a ministrar." />
       <EventForm onSubmit={handleCreate} submitLabel="Crear evento" saving={saving} />
     </div>
   )

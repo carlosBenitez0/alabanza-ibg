@@ -17,8 +17,10 @@ interface EventRow {
   title: string
   event_type: EventType
   date: string
+  end_date: string | null
   start_time: string | null
   location: string | null
+  organizer: string | null
   event_assignments: { count: number }[]
 }
 
@@ -27,9 +29,10 @@ type WhenFilter = 'upcoming' | 'past'
 
 const typeFilters: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
-  { value: 'service', label: 'Cultos' },
-  { value: 'saturday', label: 'Sábados' },
-  { value: 'rehearsal', label: 'Ensayos' },
+  { value: 'camp', label: 'Campamentos' },
+  { value: 'united', label: 'Eventos unidos' },
+  { value: 'invitation', label: 'Invitaciones' },
+  { value: 'other', label: 'Otros' },
 ]
 
 function parseLocalDate(iso: string) {
@@ -46,10 +49,11 @@ export default function AdminEventsPage() {
     const today = formatISOShortDate(new Date())
     let query = supabase
       .from('events')
-      .select('id, title, event_type, date, start_time, location, event_assignments(count)')
+      .select('id, title, event_type, date, end_date, start_time, location, organizer, event_assignments(count)')
+    // A camp that already started but hasn't ended is still upcoming
     query = when === 'upcoming'
-      ? query.gte('date', today).order('date', { ascending: true })
-      : query.lt('date', today).order('date', { ascending: false }).limit(60)
+      ? query.or(`date.gte.${today},end_date.gte.${today}`).order('date', { ascending: true })
+      : query.lt('date', today).or(`end_date.is.null,end_date.lt.${today}`).order('date', { ascending: false }).limit(60)
     const { data } = await query
     return (data as EventRow[]) || []
   }, [supabase, when])
@@ -69,7 +73,7 @@ export default function AdminEventsPage() {
     <div className="space-y-5 sm:space-y-6">
       <PageHeader
         title="Eventos"
-        description="Cultos, sábados y ensayos del ministerio."
+        description="Invitaciones y eventos especiales: campamentos, eventos con otras iglesias y más. Los cultos y ensayos van en los privilegios semanales."
         actionsDesktopOnly
         actions={
           <Link href="/admin/events/new" className={buttonVariants()}>
@@ -115,8 +119,8 @@ export default function AdminEventsPage() {
       ) : grouped.length === 0 ? (
         <EmptyState
           icon={<Calendar />}
-          title={when === 'upcoming' ? 'No hay eventos próximos' : 'No hay eventos pasados'}
-          description="Crea un evento para empezar a asignar al equipo."
+          title={when === 'upcoming' ? 'No hay eventos especiales próximos' : 'No hay eventos pasados'}
+          description="Cuando nos inviten a un campamento o a un evento con otras iglesias, créalo aquí para asignar al equipo y preparar el repertorio."
           action={
             <Link href="/admin/events/new" className={buttonVariants({ fullWidthMobile: true })}>
               <Plus className="w-4 h-4" aria-hidden="true" />
@@ -155,6 +159,12 @@ export default function AdminEventsPage() {
                             </Badge>
                           </span>
                           <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-[var(--text-tertiary)]">
+                            {event.end_date && (
+                              <span className="font-mono">
+                                hasta {format(parseLocalDate(event.end_date), "d 'de' MMM", { locale: es })}
+                              </span>
+                            )}
+                            {event.organizer && <span className="truncate">{event.organizer}</span>}
                             {event.start_time && (
                               <span className="flex items-center gap-1 font-mono">
                                 <Clock className="w-3 h-3" aria-hidden="true" />

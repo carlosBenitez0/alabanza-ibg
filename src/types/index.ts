@@ -1,5 +1,6 @@
 export type UserRole = 'singer' | 'leader' | 'admin'
-export type EventType = 'rehearsal' | 'service' | 'saturday'
+/** Special occasions the team is invited to (regular services are weekly privileges) */
+export type EventType = 'camp' | 'united' | 'invitation' | 'other'
 export type AssignmentRole = 'lead_vocal' | 'choir' | 'musician' | 'sound' | 'media'
 export type AssignmentStatus = 'pending' | 'confirmed' | 'declined'
 export type SongListStatus = 'draft' | 'submitted' | 'approved'
@@ -19,10 +20,17 @@ export interface Event {
   title: string
   event_type: EventType
   date: string
+  /** Last day, for multi-day events such as camps */
+  end_date?: string
   start_time?: string
   end_time?: string
+  /** Arrival / sound check time */
+  arrival_time?: string
   location?: string
+  /** Church or group that invites/hosts */
+  organizer?: string
   notes?: string
+  songs?: { song_id?: string; title: string; key?: string }[]
   created_by: string
   created_at: string
   updated_at: string
