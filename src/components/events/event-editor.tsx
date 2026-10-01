@@ -1,0 +1,494 @@
+'use client'
+
+import { useCallback, useState } from 'react'
+import { useAsyncData } from '@/hooks/use-async-data'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Plus, Trash2, UserPlus, Users, MoreHorizontal, ListMusic, Save } from 'lucide-react'
+import { RepertoireEditor } from '@/components/songs/repertoire-editor'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes'
+import { useSupabase } from '@/hooks/use-supabase'
+import { useAuth } from '@/components/providers/auth-provider'
+import { useProfile } from '@/components/providers/profile-provider'
+import { useToast } from '@/components/providers/toast-provider'
+import { Button, Modal, PageHeader, PageLoader, EmptyState, Select, buttonVariants } from '@/components/ui'
+import { EventForm, toEventRow, type EventFormValues } from '@/components/admin/event-form'
+import {
+  ASSIGNMENT_ROLES,
+  ASSIGNMENT_STATUSES,
+  StatusBadge,
+  getAssignmentRoleLabel,
+  getAssignmentStatusLabel,
+} from '@/components/admin/assignment-status'
+import { cn } from '@/lib/utils'
+import type { AssignmentRole, AssignmentStatus, EventType } from '@/types'
+import type { PrivilegeSongItem } from '@/types/privileges'
+
+interface EventRecord {
+  id: string
+  title: string
+  event_type: EventType
+  organizer: string | null
+  date: string
+  end_date: string | null
+  arrival_time: string | null
+  start_time: string | null
+  end_time: string | null
+  location: string | null
+  notes: string | null
+  songs: PrivilegeSongItem[] | null
+  created_by: string | null
+}
+
+interface AssignmentRow {
+  id: string
+  role: AssignmentRole
+  status: AssignmentStatus
+  profile_id: string
+  profile: { full_name: string | null } | { full_name: string | null }[] | null
+}
+
+interface Member {
+  id: string
+  full_name: string | null
+}
+
+const profileName = (a: AssignmentRow) => {
+  const p = Array.isArray(a.profile) ? a.profile[0] : a.profile
+  return p?.full_name || 'Miembro'
+}
+
+interface EventEditorProps {
+  /** Admin panel: also assign people, change their status and remove them */
+  manageTeam: boolean
+  backHref: string
+  backLabel: string
+  afterDeleteHref: string
+}
+
+/** Edit an event's data and repertoire (creator or admin), plus its team in the admin panel */
+export function EventEditor({ manageTeam, backHref, backLabel, afterDeleteHref }: EventEditorProps) {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const supabase = useSupabase()
+  const { toast } = useToast()
+  const { user } = useAuth()
+  const { isAdmin } = useProfile()
+
+  const [saving, setSaving] = useState(false)
+
+  const [showDelete, setShowDelete] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newMember, setNewMember] = useState('')
+  const [newRole, setNewRole] = useState<AssignmentRole>('lead_vocal')
+  const [editing, setEditing] = useState<AssignmentRow | null>(null)
+  // Removing someone takes a second, explicit tap
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  // Unsaved repertoire edits (null = showing what is saved)
+  const [songsDraft, setSongsDraft] = useState<PrivilegeSongItem[] | null>(null)
+  useUnsavedChangesWarning(songsDraft !== null)
+  const [savingSongs, setSavingSongs] = useState(false)
+
+  const loadBase = useCallback(async () => {
+    const [eventRes, membersRes] = await Promise.all([
+      supabase.from('events').select('*').eq('id', id).maybeSingle(),
+      manageTeam ? supabase.from('profiles').select('id, full_name').order('full_name') : Promise.resolve({ data: [] }),
+    ])
+    return { event: eventRes.data as EventRecord | null, members: (membersRes.data || []) as Member[] }
+  }, [supabase, id, manageTeam])
+
+  const loadAssignments = useCallback(async () => {
+    const { data } = await supabase
+      .from('event_assignments')
+      .select('id, role, status, profile_id, profile:profiles(full_name)')
+      .eq('event_id', id)
+      .order('role')
+    return (data as AssignmentRow[]) || []
+  }, [supabase, id])
+
+  const base = useAsyncData(loadBase, { event: null as EventRecord | null, members: [] as Member[] })
+  const team = useAsyncData<AssignmentRow[]>(manageTeam ? loadAssignments : null, [])
+  const { event, members } = base.data
+  const assignments = team.data
+  const loading = base.loading || team.loading
+
+  const handleUpdate = async (values: EventFormValues) => {
+    setSaving(true)
+    const { error } = await supabase.from('events').update(toEventRow(values)).eq('id', id)
+    setSaving(false)
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo guardar el evento. Inténtalo de nuevo.', variant: 'destructive' })
+      return false
+    }
+    toast({ title: 'Evento actualizado', variant: 'success' })
+    base.reload()
+    return true
+  }
+
+  const handleSaveSongs = async () => {
+    if (!songsDraft) return
+    setSavingSongs(true)
+    const { error } = await supabase.from('events').update({ songs: songsDraft }).eq('id', id)
+    setSavingSongs(false)
+    if (error) {
+      toast({ title: 'No se pudo guardar el repertorio', description: 'Intenta de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Repertorio guardado', variant: 'success' })
+    base.setData((prev) => ({ ...prev, event: prev.event ? { ...prev.event, songs: songsDraft } : prev.event }))
+    setSongsDraft(null)
+  }
+
+  const handleDelete = async () => {
+    setSaving(true)
+    const { error } = await supabase.from('events').delete().eq('id', id)
+    if (error) {
+      setSaving(false)
+      toast({ title: 'Error', description: 'No se pudo eliminar el evento', variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Evento eliminado', variant: 'success' })
+    router.replace(afterDeleteHref)
+  }
+
+  const handleAddAssignment = async () => {
+    if (!newMember) return
+    setSaving(true)
+    const { error } = await supabase
+      .from('event_assignments')
+      .insert({ event_id: id, profile_id: newMember, role: newRole, status: 'pending' })
+    setSaving(false)
+    if (error) {
+      const duplicate = error.code === '23505'
+      toast({
+        title: 'No se pudo asignar',
+        description: duplicate ? 'Ese miembro ya tiene ese rol en este evento.' : 'Intenta de nuevo.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setShowAdd(false)
+    setNewMember('')
+    team.reload()
+  }
+
+  const handleStatusChange = async (assignment: AssignmentRow, status: AssignmentStatus) => {
+    setSaving(true)
+    const { error } = await supabase
+      .from('event_assignments')
+      .update({ status, confirmed_at: status === 'confirmed' ? new Date().toISOString() : null })
+      .eq('id', assignment.id)
+    setSaving(false)
+    if (error) {
+      toast({ title: 'No se pudo cambiar el estado', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: `${profileName(assignment)}: ${getAssignmentStatusLabel(status).toLowerCase()}`, variant: 'success' })
+    setEditing(null)
+    team.reload()
+  }
+
+  const handleRemoveAssignment = async (assignment: AssignmentRow) => {
+    setSaving(true)
+    const { error } = await supabase.from('event_assignments').delete().eq('id', assignment.id)
+    setSaving(false)
+    if (error) {
+      toast({ title: 'No se pudo quitar del evento', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: `${profileName(assignment)} ya no está en el evento`, variant: 'success' })
+    setEditing(null)
+    setConfirmRemove(false)
+    team.reload()
+  }
+
+  if (loading) return <PageLoader />
+
+  if (!event) {
+    return (
+      <EmptyState
+        title="Evento no encontrado"
+        description="Puede que haya sido eliminado."
+        action={
+          <Link href={backHref} className={buttonVariants({ fullWidthMobile: true })}>
+            {backLabel}
+          </Link>
+        }
+      />
+    )
+  }
+
+  // The database enforces this too; here it avoids a form that can't save
+  if (!manageTeam && !isAdmin && event.created_by !== user?.id) {
+    return (
+      <EmptyState
+        title="No puedes editar este evento"
+        description="Solo quien lo creó o el administrador pueden cambiarlo."
+        action={
+          <Link href={backHref} className={buttonVariants({ fullWidthMobile: true })}>
+            {backLabel}
+          </Link>
+        }
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Link href={backHref} className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-3' })}>
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+        {backLabel}
+      </Link>
+
+      <PageHeader
+        title={event.title}
+        description={manageTeam ? 'Edita los datos del evento y gestiona quién participa.' : 'Edita los datos y el repertorio del evento.'}
+        actions={
+          <Button variant="outline" onClick={() => setShowDelete(true)} className="text-[var(--color-error)] border-[var(--color-error)]/40">
+            <Trash2 className="w-4 h-4" />
+            Eliminar
+          </Button>
+        }
+      />
+
+      {/* Assignments first on phones: it's the frequent task */}
+      {manageTeam && (
+        <section className="space-y-3" aria-labelledby="assignments-title">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="assignments-title" className="text-base font-bold flex items-center gap-2">
+              <Users className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+              Equipo asignado ({assignments.length})
+            </h2>
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
+              <UserPlus className="w-4 h-4" />
+              Asignar
+            </Button>
+          </div>
+
+          {assignments.length === 0 ? (
+            <p className="p-4 rounded-[var(--radius-md)] border border-dashed border-[var(--border-normal)] text-sm text-[var(--text-tertiary)] text-center">
+              Nadie asignado todavía.
+            </p>
+          ) : (
+            <ul className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-raised)] divide-y divide-[var(--border-subtle)] overflow-hidden">
+              {assignments.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(a)}
+                    className="w-full flex items-center gap-3 min-h-14 px-3 sm:px-4 py-2.5 text-left hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    <span className="w-8 h-8 rounded-full bg-[var(--bg-active)] border border-[var(--border-normal)] flex items-center justify-center text-xs font-semibold shrink-0">
+                      {profileName(a).charAt(0).toUpperCase()}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold truncate">{profileName(a)}</span>
+                      <span className="block text-xs text-[var(--text-tertiary)]">{getAssignmentRoleLabel(a.role)}</span>
+                    </span>
+                    <StatusBadge status={a.status} />
+                    <MoreHorizontal className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className={cn('space-y-3', manageTeam && 'pt-2 border-t border-[var(--border-subtle)]')} aria-labelledby="repertoire-title">
+        <div className="flex items-center justify-between gap-2 pt-4">
+          <h2 id="repertoire-title" className="text-base font-bold flex items-center gap-2">
+            <ListMusic className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+            Repertorio ({(songsDraft ?? event.songs ?? []).length})
+          </h2>
+          {songsDraft && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setSongsDraft(null)} disabled={savingSongs}>
+                Descartar
+              </Button>
+              <Button size="sm" onClick={handleSaveSongs} loading={savingSongs}>
+                <Save className="w-4 h-4" />
+                Guardar
+              </Button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-[var(--text-tertiary)]">
+          {songsDraft ? (
+            <span className="text-[var(--text-primary)] font-medium">Cambios sin guardar en el repertorio.</span>
+          ) : (
+            'Las alabanzas que el equipo cantará en este evento, en orden y con su tono. El equipo las ve en el detalle del evento.'
+          )}
+        </p>
+        <RepertoireEditor
+          songs={songsDraft ?? event.songs ?? []}
+          onChange={setSongsDraft}
+          disabled={savingSongs}
+        />
+      </section>
+
+      <section className="space-y-3 pt-2 border-t border-[var(--border-subtle)]" aria-labelledby="details-title">
+        <h2 id="details-title" className="text-base font-bold pt-4">Datos del evento</h2>
+        <EventForm
+          saving={saving}
+          submitLabel="Guardar cambios"
+          onSubmit={handleUpdate}
+          defaultValues={{
+            title: event.title,
+            event_type: event.event_type,
+            organizer: event.organizer ?? '',
+            date: event.date,
+            end_date: event.end_date ?? '',
+            arrival_time: event.arrival_time?.slice(0, 5) ?? '',
+            start_time: event.start_time?.slice(0, 5) ?? '',
+            end_time: event.end_time?.slice(0, 5) ?? '',
+            location: event.location ?? '',
+            notes: event.notes ?? '',
+          }}
+        />
+      </section>
+
+      {/* Add assignment */}
+      <Modal
+        isOpen={showAdd}
+        onClose={() => setShowAdd(false)}
+        title="Asignar al equipo"
+        description={event.title}
+        dismissible={!saving}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddAssignment} loading={saving} disabled={!newMember}>
+              <Plus className="w-4 h-4" />
+              Asignar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <Select
+            id="assign-member"
+            label="Miembro"
+            placeholder="Selecciona un miembro"
+            value={newMember}
+            onChange={(e) => setNewMember(e.target.value)}
+            options={members.map((m) => ({ value: m.id, label: m.full_name || 'Sin nombre' }))}
+          />
+          <fieldset>
+            <legend className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Rol</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {ASSIGNMENT_ROLES.map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  aria-pressed={newRole === role}
+                  onClick={() => setNewRole(role)}
+                  className={cn(
+                    'min-h-11 px-3 rounded-[var(--radius-md)] border text-sm font-medium transition-colors text-left',
+                    newRole === role
+                      ? 'bg-[var(--text-primary)] text-[var(--text-inverse)] border-[var(--text-primary)]'
+                      : 'bg-[var(--bg-surface)] border-[var(--border-normal)] text-[var(--text-secondary)]'
+                  )}
+                >
+                  {getAssignmentRoleLabel(role)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+      </Modal>
+
+      {/* Edit one assignment */}
+      <Modal
+        isOpen={!!editing}
+        onClose={() => {
+          setEditing(null)
+          setConfirmRemove(false)
+        }}
+        size="sm"
+        title={editing ? profileName(editing) : ''}
+        description={editing ? getAssignmentRoleLabel(editing.role) : undefined}
+        dismissible={!saving}
+      >
+        {editing && (
+          <div className="space-y-5">
+            <fieldset>
+              <legend className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Estado</legend>
+              <div className="grid gap-2">
+                {ASSIGNMENT_STATUSES.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    aria-pressed={editing.status === status}
+                    disabled={saving}
+                    onClick={() => handleStatusChange(editing, status)}
+                    className={cn(
+                      'min-h-12 px-4 rounded-[var(--radius-md)] border text-sm font-medium flex items-center justify-between transition-colors',
+                      editing.status === status
+                        ? 'border-[var(--text-primary)] bg-[var(--bg-hover)]'
+                        : 'border-[var(--border-normal)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]'
+                    )}
+                  >
+                    {getAssignmentStatusLabel(status)}
+                    <StatusBadge status={status} />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            {confirmRemove ? (
+              <div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-error)]/40 space-y-3" role="alert">
+                <p className="text-sm text-[var(--text-primary)]">
+                  ¿Quitar a <strong>{profileName(editing)}</strong> de este evento?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => setConfirmRemove(false)} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleRemoveAssignment(editing)} loading={saving}>
+                    Sí, quitar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full text-[var(--color-error)] border-[var(--color-error)]/40"
+                onClick={() => setConfirmRemove(true)}
+                disabled={saving}
+              >
+                <Trash2 className="w-4 h-4" />
+                Quitar del evento
+              </Button>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete event */}
+      <Modal
+        isOpen={showDelete}
+        onClose={() => setShowDelete(false)}
+        tone="danger"
+        size="sm"
+        title="Eliminar evento"
+        dismissible={!saving}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowDelete(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} loading={saving}>
+              Sí, eliminar
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-[var(--text-secondary)]">
+          Se eliminará <strong className="text-[var(--text-primary)]">{event.title}</strong> y todas sus asignaciones. Esta acción no se puede deshacer.
+        </p>
+      </Modal>
+    </div>
+  )
+}
