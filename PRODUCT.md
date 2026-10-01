@@ -9,36 +9,37 @@ web
 ## Users
 
 **Primary:** Church worship team members (singers, musicians) at IBG.
-They use the app remotely — at home or on mobile during the week — to prepare for upcoming services. Their core job: check which events they're assigned to and review the exact song list they'll perform.
+They use the app remotely — at home or on mobile during the week — to prepare for upcoming services. Their core job: register (singers) or review (musicians) the weekend's privileges and the exact songs and keys to practice.
 
-**Secondary:** Worship leaders and admins who create events, assign team members, and publish song lists.
+**Secondary:** One admin who manages roles and instruments, and can assign people to special events. There are no leaders: the team works as peers.
 
 ## Product Purpose
 
-Alabanza IBG is a worship team coordination app for a local church (IBG). It bridges the gap between scheduling and musical preparation: members see their service assignments alongside the specific songs they'll sing or play, so they can prepare confidently before the service. Leaders control what gets published, and the app keeps a record of every service and its participants.
+Alabanza IBG is a worship team coordination app for a local church (IBG). It bridges the gap between scheduling and musical preparation: singers register their weekly privilege with its songs, keys and backing vocals, and musicians see every song of the weekend in the key the singer chose, so everyone prepares confidently before the service. The app keeps a record of every service and its participants.
 
 **What success looks like for a member:** Open the app, see your upcoming events, and immediately know what songs you'll need to practice.
 
 ## Positioning
 
-Alabanza IBG ties the song list directly to each member's personal assignment — a musician sees only the set list for the services they're on, not a global calendar full of noise. A shared calendar + WhatsApp group cannot link individual assignments to a specific, published song list with confirmation status.
+Alabanza IBG ties the song list directly to each privilege — a musician opens the weekend's songs already transposed to the singer's key, and each singer sees who sings backing vocals with them. A shared calendar + WhatsApp group cannot link individual assignments to a specific, published song list with confirmation status.
 
 ## Operating Context
 
 - Members use the app on mobile or desktop during the week, not during the live service itself.
-- Worship leaders prepare song lists in advance and publish them once finalized.
+- Singers register their privileges in advance (by midweek) so musicians have time to practice.
 - The church operates exclusively in Spanish; no English content is needed anywhere in the product.
-- Roles: **singer**, **musician**, **leader**, **admin**. Leaders can assign members and publish song lists. Admins have full management access.
-- Event types include regular Sunday services and special worship events.
+- Roles: **singer**, **musician** and **admin** only. A musician is shown by their instrument (Guitarrista, Pianista…), assigned by the admin. Anyone can be a backing vocal (corista) in a singer's privilege.
+- Regular Saturday/Sunday services are weekly privileges (alabanzas, coros, ensayo). Events are only special invitations: camps, joint events with other churches, invitations to minister.
 
 ## Capabilities and Constraints
 
 - **Auth:** Supabase-backed authentication (email/password and invite-based onboarding implied).
-- **Events:** Created by leaders/admins; members are assigned to events with a role.
-- **Song lists:** Attached to events; members see the song list only when published.
-- **Assignments:** Members confirm their availability (status: pending → confirmed/declined).
-- **Notifications:** In-app notifications for new assignments and song list updates.
-- **Admin panel:** Leaders and admins can manage events, assignments, users.
+- **Privileges:** Weekly Saturday/Sunday slots registered by singers with songs, keys and backing vocals; everyone sees the whole team's privileges in the weekly table and the calendar.
+- **Events:** Any member creates special events and signs up with a role; the creator and the admin edit or delete them.
+- **Assignments:** The admin can also assign people to events; they confirm their availability (pending → confirmed/declined).
+- **Repertoire:** Shared song catalog with keys and chord sheets (transposable, stage mode, PDF).
+- **Notifications:** In-app notices for new privileges, backing vocals, songs, events and assignments.
+- **Admin panel:** Admin only: roles, instruments, event assignments.
 - **Stack:** Next.js 16 (App Router, Turbopack), Tailwind CSS v4, Supabase (Postgres + Auth + Realtime).
 - **Language:** 100% Spanish UI.
 
