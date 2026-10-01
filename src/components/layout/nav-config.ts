@@ -48,8 +48,12 @@ export const bottomTabHrefs = [
   '/dashboard/notifications',
 ]
 
+// An event's detail lives at /dashboard/events/[id] (notifications link there) but belongs to "Eventos"
+const eventDetail = /^\/dashboard\/events\/[^/]+$/
+
 export function isNavActive(pathname: string, href: string) {
   if (href === '/dashboard' || href === '/admin') return pathname === href
+  if (eventDetail.test(pathname)) return href === '/dashboard/special-events'
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
