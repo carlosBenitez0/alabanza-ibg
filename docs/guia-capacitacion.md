@@ -136,10 +136,9 @@ En la computadora, lo mismo aparece en el menú de la izquierda.
 **Más → Equipo** muestra quién participa este fin de semana y en qué. Sirve para saber con quién vas a servir.
 
 ### A8. Mi Calendario
-**Más → Mi Calendario** muestra tus privilegios y los eventos especiales en los que participas.
-- **Mostrar:** *Míos* o *Todo el equipo*.
+**Más → Mi Calendario** muestra los privilegios de **todo el equipo** y los eventos especiales en los que participas. Cada día dice qué hay (*Alabanzas*, *Coros*, *Ensayo*) y quién lo tiene.
 - **Vista:** *Mes* (calendario) o *Lista* (agenda).
-- Toca un día para ver qué hay ese día.
+- Toca un privilegio para ver sus alabanzas, sus coristas y las notas.
 
 ---
 
