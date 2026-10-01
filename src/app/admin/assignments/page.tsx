@@ -61,11 +61,13 @@ export default function AdminAssignmentsPage() {
   }, [supabase])
   const { data: events, loading, error, reload } = useAsyncData<EventWithAssignments[]>(load, [])
 
+  // Un evento sin nadie asignado cuenta como un pendiente: falta armar el equipo.
   const counts = useMemo(() => {
     const all = events.flatMap((e) => e.event_assignments)
+    const unassigned = events.filter((e) => e.event_assignments.length === 0).length
     return {
-      all: all.length,
-      pending: all.filter((a) => a.status === 'pending').length,
+      all: all.length + unassigned,
+      pending: all.filter((a) => a.status === 'pending').length + unassigned,
       confirmed: all.filter((a) => a.status === 'confirmed').length,
       declined: all.filter((a) => a.status === 'declined').length,
     }
@@ -95,12 +97,15 @@ export default function AdminAssignmentsPage() {
     ...ASSIGNMENT_STATUSES.map((s) => ({ value: s, label: `${getAssignmentStatusLabel(s)} (${counts[s]})` })),
   ]
 
+  const unassignedIds = new Set(events.filter((e) => e.event_assignments.length === 0).map((e) => e.id))
+  const isUnassigned = (e: EventWithAssignments) => unassignedIds.has(e.id)
+
   const visible = events
     .map((e) => ({
       ...e,
       event_assignments: filter === 'all' ? e.event_assignments : e.event_assignments.filter((a) => a.status === filter),
     }))
-    .filter((e) => filter === 'all' || e.event_assignments.length > 0)
+    .filter((e) => filter === 'all' || e.event_assignments.length > 0 || (filter === 'pending' && isUnassigned(e)))
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -155,8 +160,19 @@ export default function AdminAssignmentsPage() {
                 </span>
                 <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
               </Link>
-              {event.event_assignments.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-[var(--text-tertiary)]">Sin asignaciones.</p>
+              {isUnassigned(event) ? (
+                <div className="flex items-center gap-3 min-h-12 px-3 sm:px-4 py-2">
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium">Nadie asignado todavía</span>
+                    <Link
+                      href={`/admin/events/${event.id}`}
+                      className="text-xs text-[var(--text-secondary)] underline underline-offset-2 hover:text-[var(--text-primary)]"
+                    >
+                      Asignar equipo
+                    </Link>
+                  </span>
+                  <StatusBadge status="pending" />
+                </div>
               ) : (
                 <ul className="divide-y divide-[var(--border-subtle)]">
                   {event.event_assignments.map((a) => (
