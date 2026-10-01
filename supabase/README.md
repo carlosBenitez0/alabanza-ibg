@@ -18,7 +18,7 @@ Las variables `NEXT_PUBLIC_*` se copian al código en el build: **después de ca
 
 ## 2. Migraciones
 
-No hay CLI de Supabase en este proyecto. Abre Supabase → SQL Editor y ejecuta, **en este orden**, el contenido de:
+No hay CLI de Supabase en este proyecto. Abre Supabase → SQL Editor y ejecuta, **en este orden**, el contenido de (si ya corriste algunas, sigue con la siguiente):
 
 1. `migrations/20260929000000_admin_role_management.sql`: solo un admin puede cambiar roles.
 2. `migrations/20260930000000_permissions_and_notifications.sql`:
@@ -26,6 +26,16 @@ No hay CLI de Supabase en este proyecto. Abre Supabase → SQL Editor y ejecuta,
    - avisos al asignar a alguien;
    - Realtime en `notifications`;
    - elimina los triggers de correo que apuntaban a `TU_APP.vercel.app`.
+3. `migrations/20261001000000_privilege_backing_vocals.sql`: coristas en los privilegios.
+4. `migrations/20261002000000_special_events.sql`: tipos y campos de eventos especiales.
+5. `migrations/20261003000000_musician_role.sql`: rol de músico e instrumentos.
+6. `migrations/20261004000000_remove_leader_role.sql`:
+   - quedan tres roles: administrador, cantante y músico; los líderes pasan a cantante;
+   - solo el administrador asigna instrumentos.
+7. `migrations/20261005000000_events_for_everyone.sql`:
+   - cualquier miembro crea eventos; quien lo creó y el admin los editan o eliminan;
+   - cada quien se apunta o se sale de un evento; el admin asigna a cualquiera;
+   - apuntarse uno mismo no genera el aviso de "Nueva asignación".
 
 Comprobación:
 
@@ -36,7 +46,7 @@ where tablename in ('profiles', 'events', 'event_assignments')
 order by tablename, cmd;
 ```
 
-Deben aparecer "Admins actualizan cualquier perfil", "Líderes crean eventos", "Líderes o el miembro actualizan asignaciones", etc., y ya **no** deben aparecer las de "Usuarios autenticados …".
+Deben aparecer "Admins actualizan cualquier perfil", "Miembros crean eventos", "Autor o admin actualizan eventos", "Admin asigna o el miembro se apunta", "Líderes o el miembro actualizan asignaciones" (el nombre quedó de antes; ahora "líder" equivale a admin), etc. Ya **no** deben aparecer "Líderes crean eventos" ni las de "Usuarios autenticados …".
 
 Para dar el primer rol de admin (desde el SQL Editor se permite):
 
