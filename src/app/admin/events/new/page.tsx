@@ -26,7 +26,7 @@ export default function NewEventPage() {
       .single()
 
     if (error || !data) {
-      toast({ title: 'Error', description: 'No se pudo crear el evento. Solo líderes y administradores pueden crearlo.', variant: 'destructive' })
+      toast({ title: 'Error', description: 'No se pudo crear el evento. Revisa tu conexión e inténtalo de nuevo.', variant: 'destructive' })
       setSaving(false)
       return false
     }

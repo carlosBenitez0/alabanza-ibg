@@ -222,7 +222,7 @@ export function RegisterPrivilegeModal({
       setLoading(false)
       toast({
         title: 'No se pudo registrar tu privilegio',
-        description: 'Inténtalo de nuevo. Si el problema sigue, avísale a un líder.',
+        description: 'Inténtalo de nuevo. Si el problema sigue, avísale al administrador.',
         variant: 'destructive',
       })
       return

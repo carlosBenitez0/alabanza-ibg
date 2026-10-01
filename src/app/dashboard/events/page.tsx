@@ -137,7 +137,7 @@ export default function EventsPage() {
           <ErrorState title="No se pudieron cargar tus eventos" onRetry={myEvents.reload} />
         ) : myEvents.data.length === 0 ? (
           <p className="text-sm text-[var(--text-tertiary)]">
-            No tienes eventos especiales próximos. Cuando un líder te asigne a un campamento o a una invitación, aparecerá aquí.
+            No tienes eventos especiales próximos. Cuando te apuntes o te asignen a un campamento o a una invitación, aparecerá aquí.
           </p>
         ) : (
           <ul className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-raised)] divide-y divide-[var(--border-subtle)] overflow-hidden">

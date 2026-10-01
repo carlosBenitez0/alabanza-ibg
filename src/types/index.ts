@@ -1,4 +1,4 @@
-export type UserRole = 'singer' | 'musician' | 'leader' | 'admin'
+export type UserRole = 'singer' | 'musician' | 'admin'
 export type Instrument = 'guitar' | 'drums' | 'trumpet' | 'piano' | 'bass'
 /** Special occasions the team is invited to (regular services are weekly privileges) */
 export type EventType = 'camp' | 'united' | 'invitation' | 'other'
