@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, PageHeader, PageLoader, EmptyState, ErrorState, SegmentedControl } from '@/components/ui'
-import { Calendar, ChevronLeft, ChevronRight, Eye, List, PartyPopper, ChevronRight as Chevron } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, List, PartyPopper, ChevronRight as Chevron } from 'lucide-react'
 import { cn, getEventTypeLabel } from '@/lib/utils'
 import { StatusBadge, getAssignmentRoleLabel } from '@/components/admin/assignment-status'
 import type { AssignmentRole, AssignmentStatus } from '@/types'
@@ -29,6 +29,19 @@ import { formatFullSpanishDate } from '@/lib/date-helpers'
 import { PrivilegeDetailModal } from '@/components/privileges/privilege-detail-modal'
 
 const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+
+/** One word per privilege so a Sunday (alabanzas, coros, ensayo) fits in a month cell */
+const shortPrivilegeLabels: Record<string, string> = {
+  saturday_musician: 'Alabanzas',
+  sunday_lead_vocal: 'Alabanzas',
+  sunday_choir: 'Coros',
+  sunday_rehearsal: 'Ensayo',
+}
+
+const privilegeOrder = (p: WeeklyPrivilege) => {
+  const index = PRIVILEGE_DEFINITIONS.findIndex((d) => d.key === p.privilege_key)
+  return index === -1 ? PRIVILEGE_DEFINITIONS.length : index
+}
 
 interface MyEventRow {
   id: string
@@ -61,9 +74,6 @@ export default function EventsPage() {
   const [selectedPrivilege, setSelectedPrivilege] = useState<WeeklyPrivilege | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  // "Míos" by default: the member's own privileges and the ones they sing backing vocals in
-  const [scope, setScope] = useState<'mine' | 'all'>('mine')
-
   const load = useCallback(() => fetchPrivileges(supabase), [supabase])
   const { data: allPrivileges, loading } = useAsyncData<WeeklyPrivilege[]>(user ? load : null, [])
 
@@ -90,12 +100,10 @@ export default function EventsPage() {
     return <PageLoader />
   }
 
-  const privileges =
-    scope === 'all'
-      ? allPrivileges
-      : allPrivileges.filter(
-          (p) => p.profile_id === user?.id || p.backing_vocals?.some((bv) => bv.profile_id === user?.id)
-        )
+  // The whole team's privileges, in service order within each day
+  const privileges = [...allPrivileges].sort(
+    (a, b) => a.assigned_date.localeCompare(b.assigned_date) || privilegeOrder(a) - privilegeOrder(b)
+  )
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -124,7 +132,7 @@ export default function EventsPage() {
         onClose={() => setIsDetailModalOpen(false)}
       />
 
-      <PageHeader title="Mi calendario" description="Tus eventos especiales y tus privilegios de sábado y domingo." />
+      <PageHeader title="Mi calendario" description="Tus eventos especiales y los privilegios de todo el equipo." />
 
       <section className="space-y-3" aria-labelledby="my-events-title">
         <h2 id="my-events-title" className="text-base font-bold flex items-center gap-2">
@@ -174,26 +182,15 @@ export default function EventsPage() {
           <Calendar className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
           Privilegios
         </h2>
-        <div className="flex flex-col min-[420px]:flex-row gap-2">
-          <SegmentedControl
-            label="Mostrar"
-            value={scope}
-            onChange={setScope}
-            options={[
-              { value: 'mine', label: 'Míos' },
-              { value: 'all', label: 'Todo el equipo' },
-            ]}
-          />
-          <SegmentedControl
-            label="Vista"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: 'calendar', label: 'Mes', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
-              { value: 'list', label: 'Lista', icon: <List className="w-4 h-4" aria-hidden="true" /> },
-            ]}
-          />
-        </div>
+        <SegmentedControl
+          label="Vista"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'calendar', label: 'Mes', icon: <Calendar className="w-4 h-4" aria-hidden="true" /> },
+            { value: 'list', label: 'Lista', icon: <List className="w-4 h-4" aria-hidden="true" /> },
+          ]}
+        />
       </div>
 
       {view === 'calendar' ? (
@@ -233,7 +230,7 @@ export default function EventsPage() {
           </CardContent>
         </Card>
       ) : (
-        <ListView privileges={privileges} onSelectPrivilege={handleOpenDetail} mine={scope === 'mine'} />
+        <ListView privileges={privileges} onSelectPrivilege={handleOpenDetail} />
       )}
     </div>
   )
@@ -325,7 +322,7 @@ function MobileMonth({
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold truncate">{priv.profile_name}</span>
                       <span className="block text-xs text-[var(--text-tertiary)] truncate">
-                        {def?.title || priv.privilege_key} · {priv.songs?.length || 0} alabanzas
+                        {shortPrivilegeLabels[priv.privilege_key] ?? def?.title ?? priv.privilege_key} · {priv.songs?.length || 0} alabanzas
                       </span>
                     </span>
                     <Chevron className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
@@ -362,7 +359,8 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
           <div
             key={dateKey}
             className={cn(
-              'min-h-[110px] p-2 border-r border-b border-[var(--border-subtle)] flex flex-col',
+              // Tall enough for a full Sunday: three one-line entries without scrolling
+              'min-h-[136px] p-2 border-r border-b border-[var(--border-subtle)] flex flex-col min-w-0',
               !isCurrentMonth && 'bg-[var(--bg-page)]',
               isTodayDate && 'bg-[var(--bg-surface)] ring-1 ring-inset ring-[var(--text-primary)]'
             )}
@@ -381,21 +379,22 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
               )}
             </div>
 
-            <div className="space-y-1 mt-1 overflow-y-auto max-h-[80px]">
+            {/* One line per entry: three fit as-is, more scroll inside the cell */}
+            <div className="space-y-1 mt-1 overflow-y-auto max-h-[92px]">
               {dayPrivileges.map((priv) => {
                 const def = PRIVILEGE_DEFINITIONS.find((p) => p.key === priv.privilege_key)
+                const label = shortPrivilegeLabels[priv.privilege_key] ?? def?.title ?? priv.privilege_key
                 return (
                   <button
                     key={priv.id}
                     type="button"
                     onClick={() => onSelectPrivilege(priv)}
-                    className="w-full min-h-11 lg:min-h-0 text-left p-1.5 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] border border-[var(--border-subtle)] transition-colors block group"
+                    title={`${def?.title ?? label}: ${priv.profile_name}`}
+                    aria-label={`${def?.title ?? label} (${def?.dayLabel ?? ''}): ${priv.profile_name}`}
+                    className="w-full h-7 text-left px-1.5 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] border border-[var(--border-subtle)] transition-colors flex items-center gap-1 min-w-0 text-caption"
                   >
-                    <span className="flex items-center justify-between gap-1 text-caption font-semibold">
-                      <span className="truncate">{priv.profile_name}</span>
-                      <Eye className="w-3 h-3 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] shrink-0" aria-hidden="true" />
-                    </span>
-                    <span className="block text-caption text-[var(--text-tertiary)] truncate">{def?.title || priv.privilege_key}</span>
+                    <span className="font-semibold shrink-0">{label}</span>
+                    <span className="truncate text-[var(--text-tertiary)]">{priv.profile_name}</span>
                   </button>
                 )
               })}
@@ -410,22 +409,16 @@ function DesktopMonth({ days, currentMonth, privilegesByDate, onSelectPrivilege 
 function ListView({
   privileges,
   onSelectPrivilege,
-  mine,
 }: {
   privileges: WeeklyPrivilege[]
   onSelectPrivilege: (privilege: WeeklyPrivilege) => void
-  mine: boolean
 }) {
   if (privileges.length === 0) {
     return (
       <EmptyState
         icon={<Calendar />}
-        title={mine ? 'Aún no tienes privilegios registrados' : 'No hay privilegios registrados'}
-        description={
-          mine
-            ? 'Regístrate en la tabla semanal o únete como corista al privilegio de alguien.'
-            : 'Cuando el equipo registre privilegios para sábado o domingo, aparecerán aquí.'
-        }
+        title="No hay privilegios registrados"
+        description="Cuando el equipo registre privilegios para sábado o domingo, aparecerán aquí."
       />
     )
   }
