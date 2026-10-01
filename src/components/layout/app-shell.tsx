@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Music, X, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getRoleLabel, getRoleWithInstruments } from '@/lib/roles'
+import { getRoleWithInstruments } from '@/lib/roles'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useProfile } from '@/components/providers/profile-provider'
 import { useSupabase } from '@/hooks/use-supabase'
@@ -186,7 +186,7 @@ export function AppShell({ children, requireAdmin }: { children: ReactNode; requ
           </div>
           <h1 className="text-2xl font-semibold text-[var(--text-primary)] mb-2">Acceso denegado</h1>
           <p className="text-sm text-[var(--text-secondary)] mb-6">
-            Esta sección es solo para líderes y administradores del ministerio.
+            Esta sección es solo para los administradores del ministerio.
           </p>
           <Link href="/dashboard" className={buttonVariants({ fullWidthMobile: true })}>
             Volver a mi panel
@@ -247,7 +247,7 @@ export function AppShell({ children, requireAdmin }: { children: ReactNode; requ
 
             <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-raised)] border border-[var(--border-subtle)] text-xs">
               <span className="text-[var(--text-tertiary)] font-mono">Rol:</span>
-              <span className="font-medium text-[var(--text-primary)]">{getRoleLabel(profile?.role)}</span>
+              <span className="font-medium text-[var(--text-primary)]">{getRoleWithInstruments(profile?.role, profile?.instruments)}</span>
             </div>
 
             <Link

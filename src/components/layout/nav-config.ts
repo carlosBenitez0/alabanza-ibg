@@ -7,6 +7,7 @@ import {
   Shield,
   Music,
   ListMusic,
+  PartyPopper,
   ClipboardList,
   UserCog,
   type LucideIcon,
@@ -25,6 +26,7 @@ export const mainNavigation: NavItem[] = [
   { name: 'Mi Panel', short: 'Panel', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Tabla Semanal', short: 'Semana', href: '/dashboard/weekly-schedule', icon: ListMusic },
   { name: 'Repertorio', short: 'Repertorio', href: '/dashboard/songs', icon: Music },
+  { name: 'Eventos', short: 'Eventos', href: '/dashboard/special-events', icon: PartyPopper },
   { name: 'Mi Calendario', short: 'Calendario', href: '/dashboard/events', icon: Calendar },
   { name: 'Equipo', href: '/dashboard/users', icon: Users },
   { name: 'Avisos', short: 'Avisos', href: '/dashboard/notifications', icon: Bell, badge: true },
@@ -55,6 +57,8 @@ const titleOverrides: { match: RegExp; title: string }[] = [
   { match: /^\/admin\/events\/new$/, title: 'Nuevo Evento' },
   { match: /^\/admin\/events\/[^/]+$/, title: 'Editar Evento' },
   { match: /^\/dashboard\/events\/[^/]+$/, title: 'Evento especial' },
+  { match: /^\/dashboard\/special-events\/new$/, title: 'Nuevo Evento' },
+  { match: /^\/dashboard\/special-events\/[^/]+\/edit$/, title: 'Editar Evento' },
 ]
 
 /** Title for the compact phone header */

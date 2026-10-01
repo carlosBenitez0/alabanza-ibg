@@ -23,7 +23,12 @@ const newPrivilegeSchema = z.object({
   songs: z.array(z.object({ title: z.string(), key: z.string().optional() })).max(30).default([]),
 })
 
-const bodySchema = z.discriminatedUnion('type', [newSongSchema, newPrivilegeSchema])
+const newEventSchema = z.object({
+  type: z.literal('new_event'),
+  eventId: z.string().uuid(),
+})
+
+const bodySchema = z.discriminatedUnion('type', [newSongSchema, newPrivilegeSchema, newEventSchema])
 
 interface InAppNotification {
   type: string
@@ -33,7 +38,7 @@ interface InAppNotification {
 }
 
 /**
- * Announces a new song or a new weekly privilege to the rest of the team:
+ * Announces a new song, weekly privilege or special event to the rest of the team:
  * an in-app notification (if the member keeps "Avisos dentro de la app" on)
  * and an email (if "Notificaciones por email" is on).
  *
@@ -67,7 +72,18 @@ export async function POST(req: NextRequest) {
 
   // The announced record must exist and belong to the caller
   let dedupeKey: string
-  if (body.type === 'new_privilege') {
+  let eventInfo: { title: string; date: string } | null = null
+  if (body.type === 'new_event') {
+    const { data: row } = await admin
+      .from('events')
+      .select('id, title, date')
+      .eq('id', body.eventId)
+      .eq('created_by', user.id)
+      .maybeSingle()
+    if (!row) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
+    dedupeKey = `event:${row.id}`
+    eventInfo = { title: row.title, date: row.date }
+  } else if (body.type === 'new_privilege') {
     const { data: row } = await admin
       .from('weekly_privileges')
       .select('id')
@@ -101,9 +117,19 @@ export async function POST(req: NextRequest) {
   const recipients = (await getAllUserEmails()).filter((r) => r.id !== user.id)
 
   let notice: InAppNotification
-  let sendMail: (r: EmailRecipient) => Promise<boolean>
+  // In-app only for events: there is no email template for them yet
+  let sendMail: ((r: EmailRecipient) => Promise<boolean>) | null = null
 
-  if (body.type === 'new_privilege') {
+  if (body.type === 'new_event') {
+    const { title, date } = eventInfo ?? { title: 'un evento', date: '' }
+    const [y, m, d] = date.split('-')
+    notice = {
+      type: 'new_event',
+      title: 'Nuevo evento especial',
+      message: `${author.name} agregó "${title}"${d ? ` (${d}/${m}/${y})` : ''}. Entra y apúntate si vas a participar.`,
+      data: { dedupe_key: dedupeKey, event_id: body.eventId },
+    }
+  } else if (body.type === 'new_privilege') {
     const def = PRIVILEGE_DEFINITIONS.find((d) => d.key === body.privilegeKey)
     notice = {
       type: 'new_privilege',
@@ -139,7 +165,7 @@ export async function POST(req: NextRequest) {
 
   let sent = 0
   for (const r of recipients) {
-    if (!r.email_enabled) continue
+    if (!sendMail || !r.email_enabled) continue
     if (await sendMail(r)) sent++
   }
 

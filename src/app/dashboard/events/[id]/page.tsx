@@ -6,15 +6,16 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowLeft, Building2, Calendar, Check, Clock, MapPin, Users, X, FileText, ListMusic } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Check, Clock, MapPin, Users, X, FileText, ListMusic, Pencil, UserPlus, LogOut } from 'lucide-react'
 import { RepertoireList } from '@/components/songs/repertoire-list'
 import type { PrivilegeSongItem } from '@/types/privileges'
 import { useAuth } from '@/components/providers/auth-provider'
+import { useProfile } from '@/components/providers/profile-provider'
 import { useToast } from '@/components/providers/toast-provider'
 import { useSupabase } from '@/hooks/use-supabase'
-import { Badge, Button, PageHeader, PageLoader, EmptyState, buttonVariants } from '@/components/ui'
-import { StatusBadge, getAssignmentRoleLabel } from '@/components/admin/assignment-status'
-import { formatTime, getEventTypeColor, getEventTypeLabel } from '@/lib/utils'
+import { Badge, Button, Modal, PageHeader, PageLoader, EmptyState, buttonVariants } from '@/components/ui'
+import { ASSIGNMENT_ROLES, StatusBadge, getAssignmentRoleLabel } from '@/components/admin/assignment-status'
+import { cn, formatTime, getEventTypeColor, getEventTypeLabel } from '@/lib/utils'
 import type { AssignmentRole, AssignmentStatus, EventType } from '@/types'
 
 interface EventDetail {
@@ -30,6 +31,7 @@ interface EventDetail {
   location: string | null
   notes: string | null
   songs: PrivilegeSongItem[] | null
+  created_by: string | null
 }
 
 const parseLocalDate = (iso: string) => {
@@ -50,9 +52,13 @@ const nameOf = (a: AssignmentRow) => (Array.isArray(a.profile) ? a.profile[0] : 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { isAdmin } = useProfile()
   const supabase = useSupabase()
   const { toast } = useToast()
   const [responding, setResponding] = useState<string | null>(null)
+  const [showJoin, setShowJoin] = useState(false)
+  const [joinRole, setJoinRole] = useState<AssignmentRole>('choir')
+  const [joining, setJoining] = useState(false)
 
   const load = useCallback(async () => {
     const [eventRes, assignRes] = await Promise.all([
@@ -89,6 +95,39 @@ export default function EventDetailPage() {
     reload()
   }
 
+  const join = async () => {
+    if (!user) return
+    setJoining(true)
+    // Signing yourself up is already a yes
+    const { error } = await supabase.from('event_assignments').insert({
+      event_id: id,
+      profile_id: user.id,
+      role: joinRole,
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+    })
+    setJoining(false)
+    if (error) {
+      toast({ title: 'No se pudo apuntarte', description: 'Inténtalo de nuevo en un momento.', variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Te apuntaste', description: `Participas como ${getAssignmentRoleLabel(joinRole)}.`, variant: 'success' })
+    setShowJoin(false)
+    reload()
+  }
+
+  const leave = async (assignment: AssignmentRow) => {
+    setResponding(assignment.id)
+    const { error } = await supabase.from('event_assignments').delete().eq('id', assignment.id)
+    setResponding(null)
+    if (error) {
+      toast({ title: 'No se pudo quitar tu participación', description: 'Inténtalo de nuevo.', variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Ya no participas en este evento' })
+    reload()
+  }
+
   if (loading) return <PageLoader />
 
   if (!event) {
@@ -98,8 +137,8 @@ export default function EventDetailPage() {
         title="Evento no encontrado"
         description="Puede que haya sido eliminado o que el enlace sea incorrecto."
         action={
-          <Link href="/dashboard/events" className={buttonVariants({ fullWidthMobile: true })}>
-            Ver mi calendario
+          <Link href="/dashboard/special-events" className={buttonVariants({ fullWidthMobile: true })}>
+            Ver eventos
           </Link>
         }
       />
@@ -109,12 +148,13 @@ export default function EventDetailPage() {
   const date = parseLocalDate(event.date)
   const endDate = event.end_date ? parseLocalDate(event.end_date) : null
   const mine = assignments.filter((a) => a.profile_id === user?.id)
+  const canEdit = isAdmin || (!!user && event.created_by === user.id)
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link href="/dashboard/events" className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-3' })}>
+      <Link href="/dashboard/special-events" className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-3' })}>
         <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-        Mi calendario
+        Eventos
       </Link>
 
       <PageHeader
@@ -131,6 +171,14 @@ export default function EventDetailPage() {
               </span>
             )}
           </span>
+        }
+        actions={
+          canEdit ? (
+            <Link href={`/dashboard/special-events/${event.id}/edit`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+              <Pencil className="w-4 h-4" aria-hidden="true" />
+              Editar
+            </Link>
+          ) : undefined
         }
       />
 
@@ -167,10 +215,18 @@ export default function EventDetailPage() {
         </div>
       </dl>
 
-      {mine.length > 0 && (
-        <section className="space-y-3" aria-labelledby="mine-title">
-          <h2 id="mine-title" className="text-base font-bold">Mi participación</h2>
-          {mine.map((a) => (
+      <section className="space-y-3" aria-labelledby="mine-title">
+        <h2 id="mine-title" className="text-base font-bold">Mi participación</h2>
+        {mine.length === 0 ? (
+          <div className="p-4 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-normal)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-[var(--text-secondary)]">Aún no participas en este evento.</p>
+            <Button onClick={() => setShowJoin(true)} fullWidthMobile>
+              <UserPlus className="w-4 h-4" />
+              Me apunto
+            </Button>
+          </div>
+        ) : (
+          mine.map((a) => (
             <div key={a.id} className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-[var(--bg-raised)] space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold">{getAssignmentRoleLabel(a.role)}</span>
@@ -198,10 +254,20 @@ export default function EventDetailPage() {
                   {a.status === 'confirmed' ? 'Ya no puedo asistir' : 'Sí puedo asistir'}
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full sm:w-auto text-[var(--text-tertiary)]"
+                onClick={() => leave(a)}
+                disabled={responding === a.id}
+              >
+                <LogOut className="w-4 h-4" />
+                Salirme del evento
+              </Button>
             </div>
-          ))}
-        </section>
-      )}
+          ))
+        )}
+      </section>
 
       {event.songs && event.songs.length > 0 && (
         <section className="space-y-3" aria-labelledby="repertoire-title">
@@ -228,7 +294,7 @@ export default function EventDetailPage() {
           Equipo ({assignments.length})
         </h2>
         {assignments.length === 0 ? (
-          <p className="text-sm text-[var(--text-tertiary)]">Aún no hay nadie asignado.</p>
+          <p className="text-sm text-[var(--text-tertiary)]">Aún no se ha apuntado nadie.</p>
         ) : (
           <ul className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-raised)] divide-y divide-[var(--border-subtle)]">
             {assignments.map((a) => (
@@ -243,6 +309,48 @@ export default function EventDetailPage() {
           </ul>
         )}
       </section>
+
+      <Modal
+        isOpen={showJoin}
+        onClose={() => setShowJoin(false)}
+        size="sm"
+        title="Me apunto"
+        description={event.title}
+        dismissible={!joining}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowJoin(false)} disabled={joining}>
+              Cancelar
+            </Button>
+            <Button onClick={join} loading={joining}>
+              <Check className="w-4 h-4" />
+              Apuntarme
+            </Button>
+          </>
+        }
+      >
+        <fieldset>
+          <legend className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">¿Cómo participas?</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {ASSIGNMENT_ROLES.map((role) => (
+              <button
+                key={role}
+                type="button"
+                aria-pressed={joinRole === role}
+                onClick={() => setJoinRole(role)}
+                className={cn(
+                  'min-h-11 px-3 rounded-[var(--radius-md)] border text-sm font-medium transition-colors text-left',
+                  joinRole === role
+                    ? 'bg-[var(--text-primary)] text-[var(--text-inverse)] border-[var(--text-primary)]'
+                    : 'bg-[var(--bg-surface)] border-[var(--border-normal)] text-[var(--text-secondary)]'
+                )}
+              >
+                {getAssignmentRoleLabel(role)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </Modal>
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { useAsyncData } from '@/hooks/use-async-data'
 
 export interface CurrentProfile {
-  role: 'singer' | 'musician' | 'leader' | 'admin' | string
+  role: 'singer' | 'musician' | 'admin' | string
   full_name: string | null
   instruments?: string[] | null
 }
@@ -72,7 +72,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [supabase, userId, refreshUnread])
 
   const profile = profileQuery.data
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'leader'
+  const isAdmin = profile?.role === 'admin'
   const isMusician = profile?.role === 'musician'
   const loading = authLoading || (!!userId && profileQuery.loading)
 

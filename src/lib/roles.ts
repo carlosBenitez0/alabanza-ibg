@@ -2,9 +2,8 @@ import type { Instrument, UserRole } from '@/types'
 
 export const ROLE_OPTIONS: { value: UserRole; label: string; description: string }[] = [
   { value: 'singer', label: 'Cantante', description: 'Registra sus privilegios de canto y ve la tabla semanal.' },
-  { value: 'musician', label: 'Músico', description: 'Ve los privilegios de los cantantes y sus alabanzas para acompañarlos.' },
-  { value: 'leader', label: 'Líder', description: 'Acceso al panel de administración y eventos.' },
-  { value: 'admin', label: 'Administrador', description: 'Todo lo anterior y puede cambiar roles.' },
+  { value: 'musician', label: 'Músico', description: 'Acompaña a los cantantes; se muestra con su instrumento.' },
+  { value: 'admin', label: 'Administrador', description: 'Panel de administración: roles, instrumentos y asignaciones.' },
 ]
 
 export const INSTRUMENT_OPTIONS: { value: Instrument; label: string }[] = [
@@ -25,9 +24,8 @@ export function getInstrumentLabels(instruments?: string[] | null): string {
     .join(', ')
 }
 
-/** "Músico · Guitarrista, Pianista" when the musician chose instruments */
+/** A musician's instrument is their role: "Guitarrista, Pianista" (plain "Músico" until the admin picks one) */
 export function getRoleWithInstruments(role?: string | null, instruments?: string[] | null): string {
-  const label = getRoleLabel(role)
   const list = role === 'musician' ? getInstrumentLabels(instruments) : ''
-  return list ? `${label} · ${list}` : label
+  return list || getRoleLabel(role)
 }

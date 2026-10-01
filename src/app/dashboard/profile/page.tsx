@@ -5,21 +5,19 @@ import { useSupabase } from '@/hooks/use-supabase'
 import { useCallback, useEffect, useState } from 'react'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { useRouter } from 'next/navigation'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button, Input, Label, Card, CardHeader, CardTitle, CardContent, Badge, Switch, Modal, PageHeader, PageLoader } from '@/components/ui'
-import { User, Mail, Phone, Bell, Save, AlertCircle, Trash2, Check } from 'lucide-react'
+import { User, Mail, Phone, Bell, Save, AlertCircle, Trash2 } from 'lucide-react'
 import { useToast } from '@/components/providers/toast-provider'
 import { useProfile } from '@/components/providers/profile-provider'
-import { INSTRUMENT_OPTIONS, getRoleLabel } from '@/lib/roles'
-import { cn } from '@/lib/utils'
+import { getRoleWithInstruments } from '@/lib/roles'
 import type { Instrument } from '@/types'
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Mínimo 2 caracteres'),
   phone: z.string().optional(),
-  instruments: z.array(z.enum(['guitar', 'drums', 'trumpet', 'piano', 'bass'])),
   email_enabled: z.boolean(),
   push_enabled: z.boolean(),
   assignment_reminder_hours: z.number().min(1).max(168),
@@ -36,12 +34,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, control, formState: { errors, isDirty } } = useForm<ProfileForm>({
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       full_name: '',
       phone: '',
-      instruments: [],
       email_enabled: true,
       push_enabled: true,
       assignment_reminder_hours: 24,
@@ -77,8 +74,6 @@ export default function ProfilePage() {
   }, [supabase, user?.id])
 
   const { data: profile, loading } = useAsyncData(user ? loadProfile : null, null)
-  const isMusician = profile?.role === 'musician'
-  const instruments = useWatch({ control, name: 'instruments' }) || []
 
   // Loaded values become the form's pristine state, so isDirty tracks real edits
   useEffect(() => {
@@ -86,7 +81,6 @@ export default function ProfilePage() {
     reset({
       full_name: profile.full_name,
       phone: profile.phone,
-      instruments: profile.instruments,
       email_enabled: profile.email_enabled,
       push_enabled: profile.push_enabled,
       assignment_reminder_hours: profile.assignment_reminder_hours,
@@ -101,8 +95,6 @@ export default function ProfilePage() {
         .update({
           full_name: data.full_name,
           phone: data.phone || null,
-          // Only musicians have instruments (and older databases lack the column)
-          ...(isMusician ? { instruments: data.instruments } : {}),
         })
         .eq('id', user?.id)
 
@@ -148,11 +140,6 @@ export default function ProfilePage() {
 
   if (loading) {
     return <PageLoader />
-  }
-
-  const toggleInstrument = (value: Instrument) => {
-    const next = instruments.includes(value) ? instruments.filter((i) => i !== value) : [...instruments, value]
-    setValue('instruments', next, { shouldDirty: true })
   }
 
   return (
@@ -210,42 +197,13 @@ export default function ProfilePage() {
             <div className="pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-[var(--text-primary)]">Rol actual</p>
-                <p className="text-xs text-[var(--text-tertiary)]">Lo asigna un administrador del ministerio</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Tu rol y tus instrumentos los asigna un administrador</p>
               </div>
               <Badge variant="brand" size="sm">
-                {getRoleLabel(profile?.role)}
+                {getRoleWithInstruments(profile?.role, profile?.instruments)}
               </Badge>
             </div>
 
-            {isMusician && (
-              <fieldset className="pt-4 border-t border-[var(--border-subtle)] space-y-2">
-                <legend className="text-sm font-medium text-[var(--text-primary)]">Instrumentos</legend>
-                <p className="text-xs text-[var(--text-tertiary)]">Marca lo que tocas; puedes elegir más de uno.</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                  {INSTRUMENT_OPTIONS.map((opt) => {
-                    const active = instruments.includes(opt.value)
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => toggleInstrument(opt.value)}
-                        disabled={saving}
-                        className={cn(
-                          'min-h-11 px-3 rounded-[var(--radius-md)] border text-sm font-medium flex items-center justify-between gap-2 transition-colors',
-                          active
-                            ? 'bg-[var(--text-primary)] text-[var(--text-inverse)] border-[var(--text-primary)]'
-                            : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-normal)] hover:text-[var(--text-primary)]'
-                        )}
-                      >
-                        {opt.label}
-                        {active && <Check className="w-4 h-4" aria-hidden="true" />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </fieldset>
-            )}
           </CardContent>
         </Card>
 

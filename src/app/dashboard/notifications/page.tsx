@@ -24,7 +24,8 @@ interface Notification {
 function NotificationIcon({ type }: { type: string }) {
   const className = 'w-5 h-5 text-[var(--text-secondary)]'
   switch (type) {
-    case 'assignment': return <Calendar className={className} aria-hidden="true" />
+    case 'assignment':
+    case 'new_event': return <Calendar className={className} aria-hidden="true" />
     case 'song_list_submitted':
     case 'new_song': return <Music className={className} aria-hidden="true" />
     case 'song_list_approved': return <Check className={className} aria-hidden="true" />

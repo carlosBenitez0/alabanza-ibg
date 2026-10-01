@@ -20,10 +20,10 @@ Explícalos con la pizarra antes de abrir la app. Si estos cinco quedan claros, 
 | Concepto | Qué es | Ejemplo |
 |---|---|---|
 | **Privilegio** | Un turno en el **culto regular** del fin de semana. Lo registra el cantante. | "Cantar alabanzas — Sábado" |
-| **Evento especial** | Una **invitación fuera de lo normal**: campamento, evento unido con otras iglesias, invitación de otra iglesia. Lo crea un líder. | "Campamento de jóvenes 2026" |
-| **Corista** | Quien acompaña con la voz en el privilegio de **otro** cantante. | Ana canta el sábado y María es su corista. |
+| **Evento especial** | Una **invitación fuera de lo normal**: campamento, evento unido con otras iglesias, invitación de otra iglesia. **Cualquiera** lo puede crear. | "Campamento de jóvenes 2026" |
+| **Corista** | Quien acompaña con la voz en el privilegio de **otro** cantante. Puede ser cantante o músico. | Ana canta el sábado y María es su corista. |
 | **Repertorio** | El catálogo de alabanzas de la iglesia, con su tono y su tablatura (acordes). | "La Bondad de Dios — G" |
-| **Asignación** | Cuando un líder pone a alguien en un evento especial. La persona debe **confirmar** o decir que **no puede**. | Pendiente → Confirmado |
+| **Participación en un evento** | Cada quien **se apunta** a un evento, o el administrador lo asigna. Si te asignan, debes **confirmar** o decir que **no puedes**. | Pendiente → Confirmado |
 
 **Privilegios que existen cada semana:**
 
@@ -36,14 +36,15 @@ Explícalos con la pizarra antes de abrir la app. Si estos cinco quedan claros, 
 
 ### Roles en el sistema
 
-| Rol | Qué puede hacer |
-|---|---|
-| **Cantante** | Registra sus privilegios con sus alabanzas, se une como corista, ve la tabla semanal, el repertorio y su calendario. |
-| **Músico** | Ve **todas las alabanzas que se cantarán en la semana** y sus tablaturas en el tono elegido. No registra privilegios ni se une como corista. |
-| **Líder** | Lo de un cantante **+ el Panel Admin**: crea eventos especiales, asigna al equipo y arma su repertorio. |
-| **Administrador** | Lo de un líder **+ cambiar el rol** de cualquier persona. |
+Hay **tres roles**. Nadie más que el administrador gestiona: el resto del equipo trabaja de igual a igual.
 
-> Todos se registran como **Cantante** por defecto. El administrador cambia a los músicos y líderes a su rol después.
+| Rol | Cómo aparece | Qué puede hacer |
+|---|---|---|
+| **Cantante** | "Cantante" | Registra sus privilegios con sus alabanzas, se une como corista, crea eventos y se apunta a ellos. |
+| **Músico** | **Su instrumento**: "Guitarrista", "Pianista", "Baterista", "Bajista", "Trompetista" (o varios) | Ve **todas las alabanzas de la semana** con su tablatura en el tono elegido. También puede unirse como corista, crear eventos y apuntarse. No registra privilegios de canto. |
+| **Administrador** | "Administrador" | Todo lo anterior **+ el Panel Admin**: cambia roles, asigna instrumentos, asigna gente a eventos y edita cualquier evento. |
+
+> Todos se registran como **Cantante** por defecto. El administrador cambia a los músicos a su rol y les **asigna su instrumento**.
 
 ---
 
@@ -52,15 +53,16 @@ Explícalos con la pizarra antes de abrir la app. Si estos cinco quedan claros, 
 Hazlo uno o dos días antes. Una demo con datos vacíos no convence a nadie.
 
 1. **Publica la versión final** de la app y comprueba que el enlace abre bien desde un celular.
-2. **Crea tu cuenta de administrador** y una cuenta de prueba para cada rol (cantante, músico, líder), o pide a un voluntario de cada rol que se registre antes.
-3. **Llena el repertorio** con las alabanzas que más se cantan (aunque sea 15 o 20), con su **tono**, y pega la **tablatura** de al menos 5.
-4. **Registra un privilegio de ejemplo** para este fin de semana, con 3 alabanzas y una corista.
-5. **Crea un evento especial de ejemplo** (por ejemplo, un campamento) y asígnale 2 o 3 personas, para que vean llegar el aviso en vivo.
-6. Ten a mano:
+2. **Corre las migraciones pendientes** en Supabase (ver `supabase/README.md`).
+3. **Crea tu cuenta de administrador** y una cuenta de prueba de cantante y otra de músico, o pide a un voluntario de cada rol que se registre antes.
+4. **Llena el repertorio** con las alabanzas que más se cantan (aunque sea 15 o 20), con su **tono**, y pega la **tablatura** de al menos 5.
+5. **Registra un privilegio de ejemplo** para este fin de semana, con 3 alabanzas y una corista.
+6. **Crea un evento especial de ejemplo** (por ejemplo, un campamento), para que en la sesión la gente se apunte en vivo.
+7. Ten a mano:
    - El **enlace** de la app (mejor en un código QR proyectado).
    - Un **proyector o pantalla** con tu celular espejado, o la app abierta en la computadora.
-   - La lista de quién es **músico** y quién es **líder**, para cambiar los roles en el momento.
-7. Pide a todos que lleguen con el **celular cargado** y con acceso a **su correo** (lo van a necesitar para confirmar la cuenta).
+   - La lista de quién es **músico** y **qué instrumento toca**, para asignarlo en el momento.
+8. Pide a todos que lleguen con el **celular cargado** y con acceso a **su correo** (lo van a necesitar para confirmar la cuenta).
 
 ---
 
@@ -70,15 +72,13 @@ Hazlo uno o dos días antes. Una demo con datos vacíos no convence a nadie.
 |---|---|---|
 | 0:00 – 0:10 | Bienvenida, la idea en una frase y los conceptos | Todos |
 | 0:10 – 0:30 | **Módulo A:** crear cuenta, entrar, instalar la app, moverse | Todos |
-| 0:30 – 0:40 | El administrador asigna los roles en vivo | Todos (esperan) |
+| 0:30 – 0:40 | El administrador asigna roles e instrumentos en vivo | Todos (esperan) |
 | 0:40 – 1:00 | **Módulo B:** cantantes | Cantantes (músicos observan) |
 | 1:00 – 1:15 | **Módulo C:** músicos y tablaturas | Músicos (cantantes observan) |
-| 1:15 – 1:25 | **Módulo D:** eventos especiales, confirmar asistencia | Todos |
-| 1:25 – 1:40 | **Ejercicio práctico:** armar el fin de semana real | Todos |
-| 1:40 – 1:50 | Preguntas y acuerdos del equipo | Todos |
-| Aparte | **Módulo E:** panel de líderes | Solo líderes y administradores |
-
-> Consejo: haz el **Módulo E con los líderes en otra reunión** más corta. Así el resto del equipo no se pierde en opciones que no va a usar.
+| 1:15 – 1:30 | **Módulo D:** eventos especiales: crear, apuntarse, confirmar | Todos |
+| 1:30 – 1:45 | **Ejercicio práctico:** armar el fin de semana real | Todos |
+| 1:45 – 1:55 | Preguntas y acuerdos del equipo | Todos |
+| Aparte | **Módulo E:** Panel Admin | Solo el administrador (y quien lo vaya a apoyar) |
 
 ---
 
@@ -114,22 +114,21 @@ En el celular hay una **barra abajo** con:
 | **Semana** | La tabla semanal: quién sirve en cada privilegio del sábado y del domingo. |
 | **Repertorio** | Catálogo de alabanzas con tono y tablatura. |
 | **Avisos** | Notificaciones (el número indica las que no has leído). |
-| **Más** | Mi Calendario, Equipo, Mi Perfil y, para líderes, el Panel Admin. |
+| **Más** | **Eventos**, Mi Calendario, Equipo, Mi Perfil y, para el administrador, el Panel Admin. |
 
 En la computadora, lo mismo aparece en el menú de la izquierda.
 
 ### A5. Mi Perfil (que cada uno lo haga en ese momento)
 1. **Más → Mi Perfil**.
 2. Revisa tu **Nombre completo** y tu **Teléfono**.
-3. **Rol actual**: solo se ve, lo asigna un administrador.
-4. **Si eres músico:** marca tus **Instrumentos** (Guitarrista, Baterista, Trompetista, Pianista, Bajista; puedes marcar varios).
-5. **Preferencias de avisos**: deja activado **Avisos dentro de la app**.
-6. **Guardar**.
+3. **Rol actual**: solo se ve. Si eres músico, ahí aparece tu instrumento. Ambos los asigna el administrador.
+4. **Preferencias de avisos**: deja activado **Avisos dentro de la app**.
+5. **Guardar**.
 
 > ⚠️ Al final del perfil está **Eliminar cuenta**. Es irreversible; avisa que no lo toquen.
 
 ### A6. Avisos
-- Te llegan avisos cuando alguien **registra un privilegio**, cuando te **agregan como corista**, cuando se **propone una alabanza nueva** y cuando te **asignan a un evento especial**.
+- Te llegan avisos cuando alguien **registra un privilegio**, cuando te **agregan como corista**, cuando se **propone una alabanza nueva**, cuando alguien **crea un evento especial** y cuando el administrador **te asigna a un evento**.
 - Cada aviso tiene un acceso directo (**Ver tabla semanal**, **Ver repertorio**, **Ver evento**).
 - Puedes marcarlos como leídos uno por uno o con **Marcar todo como leído**.
 
@@ -137,19 +136,18 @@ En la computadora, lo mismo aparece en el menú de la izquierda.
 **Más → Equipo** muestra quién participa este fin de semana y en qué. Sirve para saber con quién vas a servir.
 
 ### A8. Mi Calendario
-**Más → Mi Calendario** muestra tus privilegios y tus eventos especiales.
+**Más → Mi Calendario** muestra tus privilegios y los eventos especiales en los que participas.
 - **Mostrar:** *Míos* o *Todo el equipo*.
 - **Vista:** *Mes* (calendario) o *Lista* (agenda).
 - Toca un día para ver qué hay ese día.
 
 ---
 
-## 6. Ahora el administrador asigna los roles (en vivo)
+## 6. Ahora el administrador asigna roles e instrumentos (en vivo)
 
 Mientras todos esperan, desde **Panel Admin → Usuarios**:
-1. Busca a cada músico → tócalo → elige **Músico** → **Guardar**.
-2. Haz lo mismo con los **Líderes**.
-3. Pide a todos que **recarguen la app**: los músicos verán que su **Panel** cambió.
+1. Toca a cada músico → elige **Músico** → marca su **instrumento** (o varios) → **Guardar**.
+2. Pide a todos que **recarguen la app**: los músicos verán que su **Panel** cambió y que junto a su nombre aparece su instrumento.
 
 Así queda claro que **el panel de cada quien depende de su rol**.
 
@@ -166,7 +164,7 @@ Así queda claro que **el panel de cada quien depende de su rol**.
    - Si no existe, escríbela completa, elige su **Tono nuevo** y añádela: queda en el catálogo para todos.
    - Ajusta el **Tono** de cada alabanza: es el tono en el que **tú** la vas a cantar.
    - Ordénalas con las flechas ↑ ↓ (el orden en que se cantarán) y quita las que no van con ✕.
-5. **Coristas:** en **+ Añadir corista…** elige quién te acompaña.
+5. **Coristas:** en **+ Añadir corista…** elige quién te acompaña (puede ser un cantante o un músico).
 6. **Notas (opcional):** indicaciones para los músicos y coristas. Ej. *"Ensayar intro, empezar solo con piano"*.
 7. **Registrar privilegio**.
 
@@ -189,7 +187,7 @@ Así queda claro que **el panel de cada quien depende de su rol**.
 ### B4. Ser corista de otro cantante
 - En la **Tabla Semanal**, dentro del privilegio de otra persona, toca **Unirme como corista**.
 - Te aparecerá en tu **Panel**, en la sección **Como Corista**, con las alabanzas de ese privilegio.
-- Para salirte, toca **Salir como corista**. El dueño del privilegio (o un líder) también puede quitarte, y la app le ofrece **Deshacer**.
+- Para salirte, toca **Salir como corista**. El dueño del privilegio (o el administrador) también puede quitarte, y la app le ofrece **Deshacer**.
 - Se puede ser corista en *Cantar alabanzas* (sábado y domingo) y en *Ensayar*.
 
 ### B5. Lo que ve el cantante en su Panel
@@ -210,7 +208,7 @@ Al entrar ves **Alabanzas de la Semana**: cada privilegio de canto del fin de se
 
 **Tu rutina:** abre el Panel a mitad de semana y ensaya cada alabanza en el tono indicado.
 
-> Si no ves tus instrumentos junto a tu nombre, márcalos en **Mi Perfil**.
+> Si junto a tu nombre dice "Músico" en lugar de tu instrumento, pídele al administrador que te lo asigne.
 
 ### C2. Ver una tablatura
 1. Toca cualquier alabanza (en tu Panel, en la Tabla Semanal o en el Repertorio).
@@ -232,62 +230,74 @@ Al entrar ves **Alabanzas de la Semana**: cada privilegio de canto del fin de se
 - **Guardar en este tono** sí cambia la tablatura **para todo el equipo**. Úsalo solo si la tablatura estaba escrita en un tono equivocado.
 - **Editar** cambia la tablatura para todos. Acuerden quién es responsable de corregirlas (ver sección 12).
 
+### C4. Si también cantas
+Los músicos también pueden ser coristas: en el privilegio de un cantante, toca **Unirme como corista**. Igual que en B4.
+
 ---
 
 ## 9. Módulo D — Eventos especiales (todos)
 
-Cuando un líder te asigna a un campamento o a una invitación:
+Los eventos son de **todo el equipo**: cualquiera los ve, cualquiera los crea y cada quien decide si participa.
 
-1. Te llega un aviso en **Avisos** → **Ver evento**.
-2. En el evento ves fecha, hora de **llegada**, inicio y fin, lugar, quién invita, notas y el **repertorio** del evento.
-3. En **Mi participación**, responde:
-   - **Sí puedo asistir** → queda **Confirmado**.
-   - **No puedo** → queda **Rechazado**.
-4. Si cambian tus planes, entra de nuevo y toca **Ya no puedo asistir** (o al revés).
-5. Abajo ves a todo el equipo asignado y si ya confirmó.
+### D1. Ver los eventos
+**Más → Eventos** muestra los **Próximos** (o los **Pasados**), agrupados por mes. Se pueden filtrar por tipo: *Campamentos*, *Eventos unidos*, *Invitaciones* y *Otros*.
 
-> **Regla del equipo:** responder en las primeras **48 horas** después del aviso. Un "Pendiente" obliga al líder a llamar a cada persona.
+### D2. Crear un evento (cuando te llegue una invitación)
+> Los cultos y ensayos del fin de semana **no** son eventos: van en los privilegios semanales.
+
+1. **Eventos** → **Nuevo Evento** (en el celular, el botón **+**).
+2. **Tipo:** *Campamento*, *Evento unido* (varias iglesias juntas), *Invitación* (otra iglesia nos invita) u *Otro*.
+3. **Título**, **Organiza / nos invita**, **Fecha** y **Hasta** (si dura varios días), horas de **Llegada**, **Inicio** y **Fin**, **Lugar** y **Notas** para el equipo.
+4. **Crear evento**. Al equipo le llega un aviso para que se apunte.
+
+### D3. Apuntarme o salirme
+1. Abre el evento (desde **Eventos** o desde el aviso → **Ver evento**).
+2. En **Mi participación**, toca **Me apunto** → elige **¿Cómo participas?** (*Voz Principal*, *Coro*, *Músico*, *Sonido* o *Multimedia*) → **Apuntarme**. Quedas **Confirmado**.
+3. Si ya no puedes ir: **Salirme del evento**.
+4. Abajo, en **Equipo**, ves a todos los que van y su estado.
+
+### D4. Si el administrador te asignó
+Te llega el aviso **Nueva asignación** y quedas **Pendiente**. En **Mi participación** responde:
+- **Confirmar** → queda **Confirmado**.
+- **No puedo** → queda **Rechazado**.
+
+Si cambian tus planes, entra de nuevo y toca **Ya no puedo asistir** (o **Sí puedo asistir**).
+
+### D5. Editar o eliminar un evento
+Solo **quien lo creó** y el **administrador** ven el botón **Editar** en el evento. Desde ahí se cambian los datos, se arma el **Repertorio** del evento (alabanzas con su tono y en orden) y se puede **Eliminar**.
+
+> **Regla del equipo:** si te asignaron, responde en las primeras **48 horas**. Un "Pendiente" obliga al administrador a llamar a cada persona.
 
 ---
 
-## 10. Módulo E — Líderes y administradores (sesión aparte)
+## 10. Módulo E — Administrador (sesión aparte)
 
 Entra desde **Más → Panel Admin**. Hay cuatro secciones: **Panel Admin**, **Eventos**, **Asignaciones** y **Usuarios**.
 
 ### E1. Panel Admin
 Resumen con **Total Eventos**, **Próximos Eventos**, **Miembros** y **Asignaciones Pendientes**. Cada tarjeta lleva a su sección.
 
-### E2. Crear un evento especial
-> Los cultos y ensayos del fin de semana **no** son eventos: van en los privilegios semanales. Los eventos son solo invitaciones especiales.
+### E2. Usuarios: roles e instrumentos
+- **Usuarios** lista a todos, con buscador.
+- Toca a una persona → elige **Cantante**, **Músico** o **Administrador** → si es músico, marca su **instrumento** (uno o varios) → **Guardar**.
+- Cuando entra alguien nuevo al ministerio: que se registre y luego asígnale su rol e instrumento.
 
-1. **Eventos** → **+ Evento**.
-2. **Tipo:** *Campamento*, *Evento unido* (varias iglesias juntas), *Invitación* (otra iglesia nos invita) u *Otro*.
-3. **Título**, **Organiza / nos invita**, **Fecha** y **Hasta** (si dura varios días), horas de **Llegada**, **Inicio** y **Fin**, **Lugar** y **Notas** para el equipo.
-4. Guardar.
-
-### E3. Armar el equipo del evento
-1. Abre el evento → **Asignar**.
+### E3. Armar el equipo de un evento
+Además de que cada quien se apunte, el administrador puede asignar a cualquiera:
+1. **Panel Admin → Eventos** → abre el evento → **Asignar**.
 2. Elige el **Miembro** y su función: *Voz Principal*, *Coro*, *Músico*, *Sonido* o *Multimedia*.
 3. La persona recibe un aviso y queda **Pendiente** hasta que responda.
 4. Tocando a alguien puedes cambiar su estado a mano (por ejemplo, si te confirmó por WhatsApp) o **quitarlo** del evento.
 
-### E4. Repertorio del evento
-En el mismo evento, sección **Repertorio**: añade alabanzas del catálogo con su tono, ordénalas y guarda. Los asignados lo ven en su vista del evento.
-
-### E5. Seguimiento en Asignaciones
+### E4. Seguimiento en Asignaciones
 **Asignaciones** muestra los próximos eventos con su gente y su estado. Filtra por **Pendiente**, **Confirmado** o **Rechazado**.
-- Un evento **sin nadie asignado** aparece como *Pendiente* con el enlace **Asignar equipo**.
+- Un evento **sin nadie** aparece como *Pendiente* con el enlace **Asignar equipo**.
 - **Rutina:** revisar **Pendiente** dos veces por semana y escribir a quien no ha respondido.
 
-### E6. Usuarios y roles (solo administradores)
-- **Usuarios** lista a todos, con buscador.
-- El **administrador** toca a una persona → elige el rol → **Guardar**. Los líderes ven la lista pero no pueden cambiar roles.
-- Cuando entra alguien nuevo al ministerio: que se registre y luego asígnale el rol correcto.
-
-### E7. Lo que el líder vigila cada semana
+### E5. Lo que el administrador vigila cada semana
 - **Miércoles:** ¿todos los privilegios de la **Tabla Semanal** tienen a alguien? Si hay uno **Libre**, coordinarlo.
 - **Jueves:** ¿cada privilegio tiene sus alabanzas? Los músicos necesitan tiempo para ensayar.
-- **Antes de un evento:** ¿no queda nadie en **Pendiente**? ¿El repertorio está guardado?
+- **Antes de un evento:** ¿hay gente suficiente apuntada? ¿No queda nadie en **Pendiente**? ¿El repertorio está guardado?
 
 ---
 
@@ -297,10 +307,12 @@ Hazlo con los datos de **este** fin de semana. Es lo que más ayuda a que todos 
 
 1. **Cada cantante** con privilegio este fin de semana lo registra en ese momento, con sus alabanzas y su tono.
 2. **Un cantante** agrega a otro como corista. El otro comprueba que le llegó el aviso y que lo ve en **Como Corista**.
-3. **Alguien** propone una alabanza que no está en el catálogo.
-4. **Todos** abren la **Tabla Semanal** y comprueban que el fin de semana quedó completo.
-5. **Los músicos** abren su **Panel**, tocan una alabanza, cambian el tono con − / + y prueban el **Modo escenario**.
-6. **Un líder** asigna a 3 personas al evento de ejemplo. Ellas responden **Sí puedo asistir** / **No puedo**, y el líder lo ve cambiar en **Asignaciones**.
+3. **Un músico** se une como corista en el privilegio de alguien.
+4. **Alguien** propone una alabanza que no está en el catálogo.
+5. **Todos** abren la **Tabla Semanal** y comprueban que el fin de semana quedó completo.
+6. **Los músicos** abren su **Panel**, tocan una alabanza, cambian el tono con − / + y prueban el **Modo escenario**.
+7. **Un voluntario** crea un evento especial. A los demás les llega el aviso y **3 personas se apuntan**.
+8. **El administrador** asigna a alguien más a ese evento; esa persona responde **Confirmar** o **No puedo**, y el administrador lo ve cambiar en **Asignaciones**.
 
 ---
 
@@ -312,10 +324,12 @@ La app no impone estas reglas, así que conviene acordarlas en voz alta:
 |---|---|
 | Fecha límite para registrar el privilegio | **Miércoles** de la semana del culto. |
 | Fecha límite para tener las alabanzas definidas | **Jueves**, para que los músicos ensayen. |
-| Responder a un evento especial | En menos de **48 horas**. |
+| Quién crea un evento | Quien recibe la invitación la registra en **Eventos** el mismo día. |
+| Apuntarse a un evento | Solo si de verdad vas a ir; si cambian tus planes, **Salirme del evento** cuanto antes. |
+| Responder a una asignación | En menos de **48 horas**. |
 | Quién corrige tablaturas | Uno o dos músicos responsables. El resto solo usa − / + y no toca **Editar** ni **Guardar en este tono**. |
 | Proponer alabanzas nuevas | Escribir el nombre completo y correcto, y poner el enlace de YouTube en las notas. |
-| Cambios de último momento | Editar el privilegio en la app **y** avisar por el grupo. |
+| Cambios de último momento | Editar en la app **y** avisar por el grupo. |
 
 ---
 
@@ -324,15 +338,19 @@ La app no impone estas reglas, así que conviene acordarlas en voz alta:
 **🎤 Cantante, cada semana:**
 1. Panel → **Registrar mi privilegio** → alabanzas + tono + coristas → Registrar.
 2. Revisa en **Semana** que todo esté bien.
-3. Si te asignan a un evento: **Avisos → Ver evento → Sí puedo / No puedo**.
+3. ¿Hay un evento? **Más → Eventos** → ábrelo → **Me apunto**.
 
-**🎸 Músico, cada semana:**
+**🎸 Músico (guitarrista, pianista, baterista…), cada semana:**
 1. Abre tu **Panel** → **Alabanzas de la Semana**.
 2. Toca cada alabanza → ensaya en el tono indicado.
 3. En el culto: **Modo escenario**.
-4. Si te asignan a un evento: confirma.
+4. ¿También cantas? **Unirme como corista**.
+5. ¿Hay un evento? **Me apunto**.
 
-**🧭 Líder, cada semana:**
+**📨 ¿Te invitaron a ministrar?**
+**Más → Eventos → Nuevo Evento** → llena los datos → **Crear evento**. El equipo recibe el aviso.
+
+**🧭 Administrador, cada semana:**
 1. Miércoles: **Semana** sin privilegios **Libres**.
 2. Jueves: todos los privilegios con alabanzas.
 3. Eventos: **Asignaciones → Pendiente** en cero antes de la fecha.
@@ -345,13 +363,19 @@ La app no impone estas reglas, así que conviene acordarlas en voz alta:
 Revisa Spam y Promociones. Desde **Iniciar sesión** puedes pedir que lo reenvíen.
 
 **Soy músico y no veo el botón "Registrar mi privilegio".**
-Es correcto. Los músicos acompañan a todos los cantantes, así que su Panel ya les muestra todas las alabanzas de la semana.
+Es correcto. Los músicos acompañan a todos los cantantes, así que su Panel ya les muestra todas las alabanzas de la semana. Si también cantas, únete como corista.
 
 **Soy músico y mi Panel se ve como el de un cantante.**
-Tu rol todavía es Cantante. Pídele al administrador que te cambie a Músico.
+Tu rol todavía es Cantante. Pídele al administrador que te cambie a Músico y te asigne tu instrumento.
+
+**¿Cómo cambio mi instrumento?**
+Lo asigna el administrador desde **Usuarios**. En tu perfil solo se ve.
 
 **No veo el Panel Admin.**
-Solo aparece para Líderes y Administradores.
+Solo aparece para el administrador.
+
+**Creé un evento con un dato equivocado.**
+Ábrelo → **Editar**. Solo quien lo creó y el administrador pueden editarlo.
 
 **¿Por qué el domingo la tabla muestra la semana siguiente?**
 Porque el domingo es el último culto de la semana. Usa la flecha **‹** para ver la anterior.
@@ -367,8 +391,7 @@ La app lo guarda en tu celular y te avisa. Ábrelo y guárdalo otra vez cuando t
 ## 15. Después de la capacitación
 
 - [ ] Todos tienen cuenta confirmada y la app instalada.
-- [ ] Todos los roles están correctos (revisa **Usuarios**).
-- [ ] Los músicos marcaron sus instrumentos.
+- [ ] Todos los roles están correctos y cada músico tiene su instrumento (revisa **Usuarios**).
 - [ ] Se compartió la **hoja de bolsillo** (sección 13) en el grupo.
 - [ ] Los acuerdos de la sección 12 quedaron escritos en el grupo.
-- [ ] La primera semana, el líder revisa la Tabla Semanal el miércoles y recuerda por el grupo a quien falte.
+- [ ] La primera semana, el administrador revisa la Tabla Semanal el miércoles y recuerda por el grupo a quien falte.

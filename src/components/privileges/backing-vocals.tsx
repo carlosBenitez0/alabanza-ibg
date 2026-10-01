@@ -12,11 +12,11 @@ import { Mic2, LogOut, X, Undo2 } from 'lucide-react'
 
 /**
  * Backing vocals (coristas) of one privilege: names, plus "join"/"leave" for the
- * signed-in member and a remove button for the owner and leaders.
+ * signed-in member and a remove button for the owner and admins.
  */
 export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivilege; onChanged: () => void }) {
   const { user } = useAuth()
-  const { isAdmin, isMusician } = useProfile()
+  const { isAdmin } = useProfile()
   const supabase = useSupabase()
   const { toast } = useToast()
   const [busy, setBusy] = useState<string | null>(null)
@@ -26,8 +26,8 @@ export function BackingVocals({ privilege, onChanged }: { privilege: WeeklyPrivi
   const vocals = privilege.backing_vocals || []
   const isOwner = user?.id === privilege.profile_id
   const mine = vocals.find((bv) => bv.profile_id === user?.id)
-  // Musicians accompany every singer already; joining as backing vocal is for singers
-  const canJoin = Boolean(user) && !isOwner && !mine && !isMusician
+  // Musicians can join too: some play and sing
+  const canJoin = Boolean(user) && !isOwner && !mine
 
   const run = async (key: string, action: () => Promise<string | null>, success: string) => {
     setBusy(key)
