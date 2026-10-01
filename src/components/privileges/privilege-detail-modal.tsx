@@ -1,10 +1,11 @@
 'use client'
 
-import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS } from '@/types/privileges'
+import { WeeklyPrivilege, PRIVILEGE_DEFINITIONS, PRIVILEGES_WITH_BACKING_VOCALS } from '@/types/privileges'
+import { useAuth } from '@/components/providers/auth-provider'
 import { RepertoireList } from '@/components/songs/repertoire-list'
 import { formatFullSpanishDate } from '@/lib/date-helpers'
 import { Button, Badge, Modal } from '@/components/ui'
-import { Calendar, Guitar, Mic, Users, Music, UserCheck, FileText } from 'lucide-react'
+import { Calendar, Guitar, Mic, Mic2, Users, Music, UserCheck, FileText } from 'lucide-react'
 
 interface PrivilegeDetailModalProps {
   privilege: WeeklyPrivilege | null
@@ -23,10 +24,14 @@ function PrivilegeIcon({ name }: { name?: string }) {
 }
 
 export function PrivilegeDetailModal({ privilege, isOpen, onClose }: PrivilegeDetailModalProps) {
+  const { user } = useAuth()
+
   if (!privilege) return null
 
   const definition = PRIVILEGE_DEFINITIONS.find((p) => p.key === privilege.privilege_key)
   const formattedDate = formatFullSpanishDate(privilege.assigned_date)
+  const takesBackingVocals = PRIVILEGES_WITH_BACKING_VOCALS.includes(privilege.privilege_key)
+  const vocals = privilege.backing_vocals || []
 
   return (
     <Modal
@@ -76,6 +81,33 @@ export function PrivilegeDetailModal({ privilege, isOpen, onClose }: PrivilegeDe
             </p>
           )}
         </section>
+
+        {takesBackingVocals && (
+          <section className="space-y-3" aria-labelledby="detail-backing-title">
+            <div className="flex items-center justify-between gap-2">
+              <h3 id="detail-backing-title" className="text-sm font-semibold flex items-center gap-2">
+                <Mic2 className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+                Coristas
+              </h3>
+              <Badge variant="outline" size="sm">{vocals.length}</Badge>
+            </div>
+            {vocals.length > 0 ? (
+              <ul className="flex flex-wrap gap-1.5">
+                {vocals.map((bv) => (
+                  <li
+                    key={bv.id}
+                    className="inline-flex items-center gap-1 min-h-8 px-2.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-medium"
+                  >
+                    <span className="truncate max-w-[12rem]">{bv.profile_name || 'Miembro'}</span>
+                    {bv.profile_id === user?.id && <span className="text-[var(--text-tertiary)]">(tú)</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-[var(--text-tertiary)]">Nadie se ha unido como corista todavía.</p>
+            )}
+          </section>
+        )}
 
         {privilege.notes && (
           <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] space-y-1.5">
